@@ -1,56 +1,120 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
-    <!-- Mobile top navbar -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="flex items-center justify-between px-4 h-14">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
-            </svg>
-          </div>
-          <span class="font-semibold text-gray-900 text-sm truncate max-w-[140px]">
-            {{ authStore.clinic?.name ?? 'Clinic SaaS' }}
+  <div class="min-h-screen bg-slate-50 flex flex-col">
+
+    <!-- Top navbar -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <AppLogo size="sm" :show-dot="true" />
+          <div class="hidden sm:block h-4 w-px bg-gray-200"></div>
+          <span class="hidden sm:block text-sm font-semibold text-slate-600 truncate max-w-[180px]">
+            {{ authStore.clinic?.name }}
           </span>
         </div>
-        <button @click="authStore.logout()"
-          class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Logout
-        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- Plan badge -->
+          <span :class="['text-xs font-bold px-2.5 py-1 rounded-full', planColor]">
+            {{ planLabel }}
+          </span>
+
+          <!-- User menu -->
+          <div class="relative" ref="menuRef">
+            <button @click="menuOpen = !menuOpen"
+              class="flex items-center gap-2 pl-2 pr-1 py-1 rounded-lg hover:bg-slate-50 transition-colors">
+              <div class="w-7 h-7 bg-sky-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {{ userInitial }}
+              </div>
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            <div v-if="menuOpen"
+              class="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+              <div class="px-4 py-2 border-b border-gray-100">
+                <p class="text-xs font-semibold text-slate-900 truncate">{{ authStore.profile?.full_name ?? 'Admin' }}</p>
+                <p class="text-xs text-slate-400 capitalize">{{ authStore.profile?.role }}</p>
+              </div>
+              <RouterLink to="/admin/settings" @click="menuOpen = false"
+                class="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Clinic Settings
+              </RouterLink>
+              <button @click="handleLogout"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Page content -->
-    <main class="flex-1 p-4 max-w-2xl mx-auto w-full">
+    <!-- Main content -->
+    <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-5 pb-24">
       <slot />
     </main>
 
-    <!-- Mobile bottom nav -->
-    <nav class="bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-10">
-      <div class="flex items-center justify-around h-14 max-w-lg mx-auto">
-        <RouterLink to="/dashboard" class="flex flex-col items-center gap-0.5 text-xs"
-          :class="$route.name === 'dashboard' ? 'text-blue-600' : 'text-gray-400'">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          Home
+    <!-- Bottom navigation (mobile) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
+      <div class="max-w-5xl mx-auto flex items-center justify-around h-16 px-2">
+        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to"
+          class="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors min-w-0"
+          :class="isActive(item.to) ? 'text-sky-500' : 'text-slate-400 hover:text-slate-600'">
+          <div class="relative">
+            <component :is="'svg'" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" :d="item.icon"/>
+            </component>
+            <span v-if="item.badge"
+              class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full">
+            </span>
+          </div>
+          <span class="text-xs font-medium truncate">{{ item.label }}</span>
         </RouterLink>
-        <!-- More nav items added in later phases -->
       </div>
     </nav>
 
-    <!-- Spacer for fixed bottom nav -->
-    <div class="h-14" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useClinic } from '@/composables/useClinic'
+import AppLogo from '../components/AppLogo.vue'
+
 const authStore = useAuthStore()
+const { planLabel, planColor } = useClinic()
+const route = useRoute()
+const menuOpen = ref(false)
+
+const userInitial = computed(() => {
+  const name = authStore.profile?.full_name ?? authStore.user?.email ?? 'A'
+  return name.charAt(0).toUpperCase()
+})
+
+const navItems = [
+  { to: '/dashboard',        label: 'Home',         icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { to: '/patients',         label: 'Patients',     icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+  { to: '/appointments',     label: 'Schedule',     icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+  { to: authStore.isDoctor ? '/queue/doctor' : '/queue', label: 'Queue', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+  { to: '/admin/settings',   label: 'Settings',     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+]
+
+function isActive(path: string) {
+  return route.path.startsWith(path)
+}
+
+async function handleLogout() {
+  menuOpen.value = false
+  await authStore.logout()
+}
 </script>
