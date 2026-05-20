@@ -27,17 +27,18 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = true
 
     authService.onAuthStateChange(async (event, session: any) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        user.value = { id: session.user.id, email: session.user.email ?? null }
-        await loadProfile(session.user.id)
-      } else if (event === 'SIGNED_OUT') {
-        user.value = null
-        profile.value = null
-        clinic.value = null
-        clinicSettings.value = null
-        router.push('/login')
-      }
-    })
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+    // TOKEN_REFRESHED fires on tab switch — this was the missing piece
+    user.value = { id: session.user.id, email: session.user.email ?? null }
+    if (!profile.value) await loadProfile(session.user.id) // only reload if missing
+  } else if (event === 'SIGNED_OUT') {
+    user.value = null
+    profile.value = null
+    clinic.value = null
+    clinicSettings.value = null
+    router.push('/login')
+  }
+})
   }
 
   async function loadProfile(userId: string) {
