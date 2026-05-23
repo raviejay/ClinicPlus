@@ -11,9 +11,12 @@ export const useAuthStore = defineStore('auth', () => {
   const clinic = ref<Clinic | null>(null)
   const clinicSettings = ref<ClinicSettings | null>(null)
   const loading = ref(false)
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   const hasClinic = computed(() => !!profile.value?.clinic_id)
+  const isAdmin = computed(() => ['admin', 'super_admin'].includes(profile.value?.role ?? ''))
+  const isDoctor = computed(() => profile.value?.role === 'doctor')
 
   async function initialize() {
     const session = await authService.getSession()
@@ -21,19 +24,21 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = { id: session.user.id, email: session.user.email ?? null }
       await loadProfile(session.user.id)
     }
+    initialized.value = true
 
     authService.onAuthStateChange(async (event, session: any) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        user.value = { id: session.user.id, email: session.user.email ?? null }
-        await loadProfile(session.user.id)
-      } else if (event === 'SIGNED_OUT') {
-        user.value = null
-        profile.value = null
-        clinic.value = null
-        clinicSettings.value = null
-        router.push('/login')
-      }
-    })
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+    // TOKEN_REFRESHED fires on tab switch — this was the missing piece
+    user.value = { id: session.user.id, email: session.user.email ?? null }
+    if (!profile.value) await loadProfile(session.user.id) // only reload if missing
+  } else if (event === 'SIGNED_OUT') {
+    user.value = null
+    profile.value = null
+    clinic.value = null
+    clinicSettings.value = null
+    router.push('/login')
+  }
+})
   }
 
   async function loadProfile(userId: string) {
@@ -47,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function loadClinic(clinicId: string) {
     const [clinicRes, settingsRes] = await Promise.all([
       clinicService.getClinic(clinicId),
-      clinicService.getClinicSettings(clinicId)
+      clinicService.getClinicSettings(clinicId),
     ])
     if (clinicRes.data) clinic.value = clinicRes.data
     if (settingsRes.data) clinicSettings.value = settingsRes.data
@@ -74,8 +79,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, profile, clinic, clinicSettings, loading,
-    isAuthenticated, hasClinic,
-    initialize, signup, login, logout, loadProfile, loadClinic
+    user, profile, clinic, clinicSettings, loading, initialized,
+    isAuthenticated, hasClinic, isAdmin, isDoctor,
+    initialize, signup, login, logout, loadProfile, loadClinic,
   }
 })
