@@ -16,7 +16,9 @@ const router = createRouter({
     { path: '/patients/new', name: 'patients-new', component: () => import('@/pages/patients/NewPatientPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     { path: '/patients/:id', name: 'patient-detail', component: () => import('@/pages/patients/PatientDetailPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Medical records
-    { path: '/medical-records/new', name: 'medical-records-new', component: () => import('@/pages/medical-records/NewRecordPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
+   // Medical records
+{ path: '/medical-records/new', name: 'medical-records-new', component: () => import('@/pages/medical-records/NewRecordPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
+{ path: '/records', name: 'records', component: () => import('@/pages/medical-records/RecordsPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Appointments
     { path: '/appointments', name: 'appointments', component: () => import('@/pages/appointments/AppointmentsPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     { path: '/appointments/new', name: 'appointments-new', component: () => import('@/pages/appointments/NewAppointmentPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
