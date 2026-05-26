@@ -78,10 +78,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { medicalRecordService, type MedicalRecordWithDetails } from '@/services/medical-record.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const records = ref<MedicalRecordWithDetails[]>([])
 const loading = ref(true)
 const search = ref('')
@@ -97,10 +99,18 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-onMounted(async () => {
+async function loadRecords() {
   if (!authStore.clinic?.id) return
+  loading.value = true
   const { data } = await medicalRecordService.getAll(authStore.clinic.id)
   records.value = data ?? []
   loading.value = false
+}
+
+onMounted(async () => {
+  await loadRecords()
+  watchBranchChange(async () => {
+    await loadRecords()
+  })
 })
 </script>

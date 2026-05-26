@@ -222,6 +222,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { queueService, type QueueWithPatient } from '@/services/queue.service'
 import { patientService } from '@/services/patient.service'
 import { useClinic } from '@/composables/useClinic'
@@ -231,7 +232,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Patient } from '@/types'
 
 const authStore = useAuthStore()
-const { canUseFeature } = useClinic()
+const { watchBranchChange } = useBranchFilter()
 
 const queue = ref<QueueWithPatient[]>([])
 const loading = ref(true)
@@ -380,6 +381,10 @@ onMounted(async () => {
       await loadQueue()
     })
   }
+
+  watchBranchChange(async () => {
+    await loadQueue()
+  })
 })
 
 onUnmounted(() => {

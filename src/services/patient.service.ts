@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Patient, ApiResponse } from '@/types'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 
 export const patientService = {
   async findOrCreate(clinicId: string, data: {
@@ -32,36 +33,47 @@ export const patientService = {
   },
 
   async getAll(clinicId: string): Promise<ApiResponse<Patient[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('patients')
       .select('*')
       .eq('clinic_id', clinicId)
-      .order('created_at', { ascending: false })
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.order('created_at', { ascending: false })
 
     if (error) return { data: null, error: error.message }
     return { data: data ?? [], error: null }
   },
 
   async getById(clinicId: string, patientId: string): Promise<ApiResponse<Patient>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('patients')
       .select('*')
       .eq('clinic_id', clinicId)
       .eq('id', patientId)
-      .single()
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.single()
 
     if (error) return { data: null, error: error.message }
     return { data, error: null }
   },
 
   async search(clinicId: string, query: string): Promise<ApiResponse<Patient[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let q = supabase
       .from('patients')
       .select('*')
       .eq('clinic_id', clinicId)
       .or(`full_name.ilike.%${query}%,contact_number.ilike.%${query}%`)
-      .order('full_name')
-      .limit(20)
+
+    q = buildBranchFilter(q)
+
+    const { data, error } = await q.order('full_name').limit(20)
 
     if (error) return { data: null, error: error.message }
     return { data: data ?? [], error: null }
@@ -81,10 +93,15 @@ export const patientService = {
   },
 
   async getCount(clinicId: string): Promise<number> {
-    const { count } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('patients')
       .select('*', { count: 'exact', head: true })
       .eq('clinic_id', clinicId)
+
+    query = buildBranchFilter(query)
+
+    const { count } = await query
     return count ?? 0
   },
 }

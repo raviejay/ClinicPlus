@@ -1,14 +1,19 @@
 import { supabaseAdmin } from "./supabase.admin";
 import { supabase } from "./supabase";
 import type { Profile, ApiResponse } from "@/types";
+import { useBranchFilter } from "@/composables/useBranchFilter";
 
 export const staffService = {
   async getAll(clinicId: string): Promise<ApiResponse<Profile[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from("profiles")
       .select("*")
       .eq("clinic_id", clinicId)
-      .order("created_at", { ascending: false });
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) return { data: null, error: error.message };
     return { data: data ?? [], error: null };

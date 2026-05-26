@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { MedicalRecord, ApiResponse } from '@/types'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 
 export type MedicalRecordWithDetails = MedicalRecord & {
   patients: { full_name: string; contact_number: string } | null
@@ -32,22 +33,31 @@ export const medicalRecordService = {
   },
 
   async getByPatient(clinicId: string, patientId: string): Promise<ApiResponse<MedicalRecordWithDetails[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('medical_records')
       .select('*, patients(full_name, contact_number), profiles(full_name)')
       .eq('clinic_id', clinicId)
       .eq('patient_id', patientId)
-      .order('visit_date', { ascending: false })
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.order('visit_date', { ascending: false })
 
     if (error) return { data: null, error: error.message }
     return { data: (data as any) ?? [], error: null }
   },
 
   async getAll(clinicId: string): Promise<ApiResponse<MedicalRecordWithDetails[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('medical_records')
       .select('*, patients(full_name, contact_number), profiles(full_name)')
       .eq('clinic_id', clinicId)
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query
       .order('visit_date', { ascending: false })
       .limit(50)
 
@@ -56,12 +66,16 @@ export const medicalRecordService = {
   },
 
   async getById(clinicId: string, recordId: string): Promise<ApiResponse<MedicalRecordWithDetails>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('medical_records')
       .select('*, patients(full_name, contact_number), profiles(full_name)')
       .eq('clinic_id', clinicId)
       .eq('id', recordId)
-      .single()
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.single()
 
     if (error) return { data: null, error: error.message }
     return { data: data as any, error: null }

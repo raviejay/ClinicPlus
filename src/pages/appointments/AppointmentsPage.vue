@@ -132,11 +132,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { appointmentService } from '@/services/appointment.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { Appointment } from '@/types'
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const appointments = ref<Appointment[]>([])
 const loading = ref(true)
 
@@ -218,18 +220,22 @@ async function loadMonthDots() {
   if (!authStore.clinic?.id) return
   const start = `${viewYear.value}-${String(viewMonth.value + 1).padStart(2, '0')}-01`
   const end = `${viewYear.value}-${String(viewMonth.value + 1).padStart(2, '0')}-${daysInMonth.value}`
-  // Adjust this call to match whatever your service supports for date range queries
   const { data } = await appointmentService.getAll(authStore.clinic.id, { dateFrom: start, dateTo: end })
   const set = new Set<string>()
   if (data) {
-    (data as any[]).forEach((a: any) => { if (a.date) set.add(a.date) })
+    (data as any[]).forEach((a: any) => { if (a.appointment_date) set.add(a.appointment_date) })
   }
   datesWithAppointments.value = set
 }
 
 watch(selectedDate, loadAppointments)
+
 onMounted(() => {
   loadAppointments()
   loadMonthDots()
+  watchBranchChange(() => {
+    loadAppointments()
+    loadMonthDots()
+  })
 })
 </script>
