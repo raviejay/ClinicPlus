@@ -90,11 +90,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { queueService, type QueueWithPatient } from '@/services/queue.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const queue = ref<QueueWithPatient[]>([])
 const calling = ref(false)
 let channel: RealtimeChannel | null = null
@@ -130,6 +132,9 @@ onMounted(async () => {
   if (authStore.clinic?.id) {
     channel = queueService.subscribeToQueue(authStore.clinic.id, loadQueue)
   }
+  watchBranchChange(async () => {
+    await loadQueue()
+  })
 })
 
 onUnmounted(() => channel?.unsubscribe())

@@ -125,12 +125,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { paymentService } from '@/services/payment.service'
 import { useClinic } from '@/composables/useClinic'
 import AppLayout from '@/layouts/AppLayout.vue'
 import FeatureGate from '@/components/ui/FeatureGate.vue'
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const { canUseFeature } = useClinic()
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -184,5 +186,9 @@ async function loadSummary() {
 }
 
 watch(selectedDate, loadSummary)
-onMounted(loadSummary)
+
+onMounted(() => {
+  loadSummary()
+  watchBranchChange(loadSummary)
+})
 </script>

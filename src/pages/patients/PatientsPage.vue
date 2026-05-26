@@ -81,11 +81,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { patientService } from '@/services/patient.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { Patient } from '@/types'
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const patients = ref<Patient[]>([])
 const totalCount = ref(0)
 const loading = ref(true)
@@ -94,6 +96,10 @@ let searchTimer: ReturnType<typeof setTimeout>
 
 onMounted(async () => {
   await loadPatients()
+  watchBranchChange(async () => {
+    searchQuery.value = ''
+    await loadPatients()
+  })
 })
 
 async function loadPatients() {

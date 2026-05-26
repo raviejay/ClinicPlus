@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Payment, ApiResponse } from '@/types'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 
 export type PaymentWithDetails = Payment & {
   patients: { full_name: string; contact_number: string } | null
@@ -25,13 +26,17 @@ export const paymentService = {
   },
 
   async getByDate(clinicId: string, date: string): Promise<ApiResponse<PaymentWithDetails[]>> {
-    const { data, error } = await supabase
+    const { buildBranchFilter } = useBranchFilter()
+    let query = supabase
       .from('payments')
       .select('*, patients(full_name, contact_number)')
       .eq('clinic_id', clinicId)
       .gte('paid_at', `${date}T00:00:00`)
       .lte('paid_at', `${date}T23:59:59`)
-      .order('paid_at', { ascending: false })
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.order('paid_at', { ascending: false })
 
     if (error) return { data: null, error: error.message }
     return { data: (data as any) ?? [], error: null }
@@ -60,17 +65,21 @@ export const paymentService = {
   },
 
   async getMonthly(clinicId: string, year: number, month: number) {
+    const { buildBranchFilter } = useBranchFilter()
     const start = `${year}-${String(month).padStart(2, '0')}-01`
     const end = new Date(year, month, 0).toISOString().split('T')[0]
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('payments')
       .select('amount, payment_method, paid_at')
       .eq('clinic_id', clinicId)
       .eq('status', 'paid')
       .gte('paid_at', `${start}T00:00:00`)
       .lte('paid_at', `${end}T23:59:59`)
-      .order('paid_at', { ascending: true })
+
+    query = buildBranchFilter(query)
+
+    const { data, error } = await query.order('paid_at', { ascending: true })
 
     if (error) return { total: 0, daily: [] }
 

@@ -212,6 +212,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import { useClinic } from '@/composables/useClinic'
 import AppLayout from '@/layouts/AppLayout.vue'
 import TrialBanner from '@/components/ui/TrialBanner.vue'
@@ -225,6 +226,7 @@ import type { Appointment } from '@/types'
 Chart.register(...registerables)
 
 const authStore = useAuthStore()
+const { watchBranchChange } = useBranchFilter()
 const { canUseFeature } = useClinic()
 
 const stats = ref({
@@ -358,16 +360,16 @@ function initChart(weeklyData: number[]) {
   })
 }
 
-onMounted(async () => {
+async function loadStats() {
   if (!authStore.clinic?.id) return
   const clinicId = authStore.clinic.id
-  const today = new Date().toISOString().split('T')[0]
+  const todayDate = new Date().toISOString().split('T')[0]
 
   const [patientCount, apptCount, queueCount, revSummary, apptList] = await Promise.all([
     patientService.getCount(clinicId),
     appointmentService.getTodayCount(clinicId),
     queueService.getWaitingCount(clinicId),
-    paymentService.getSummary(clinicId, today),
+    paymentService.getSummary(clinicId, todayDate),
     appointmentService.getToday(clinicId),
   ])
 
@@ -389,5 +391,10 @@ onMounted(async () => {
     weeklyData.push(s.total)
   }
   setTimeout(() => initChart(weeklyData), 100)
+}
+
+onMounted(() => {
+  loadStats()
+  watchBranchChange(loadStats)
 })
 </script>
