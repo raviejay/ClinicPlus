@@ -196,6 +196,8 @@ import { useAuthStore } from '@/stores/auth'
 import { superadminService, type ClinicWithBranches } from '@/services/superadmin.service'
 import { supabase } from '@/services/supabase'
 import AppLayout from '@/layouts/AppLayout.vue'
+// add ClinicPlan to your import
+import type { AuthUser, Profile, Clinic, ClinicPlan } from '@/types'
 
 const authStore = useAuthStore()
 const clinics = ref<ClinicWithBranches[]>([])
@@ -274,7 +276,8 @@ async function handlePlanChange(clinic: ClinicWithBranches, newPlan: string) {
   // Update local state
   const target = clinics.value.find(c => c.id === clinic.id)
   if (target) {
-    target.plan = newPlan
+  // in handlePlanChange, change this one line:
+    target.plan = newPlan as ClinicPlan
     target.is_trial = false
   }
 

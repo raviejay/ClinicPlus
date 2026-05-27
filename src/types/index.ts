@@ -22,6 +22,7 @@ export interface Profile {
   created_at: string
 }
 
+
 export interface Clinic {
   id: string
   name: string
