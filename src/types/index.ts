@@ -28,7 +28,7 @@ export interface Clinic {
   slug: string
   email: string | null
   plan: ClinicPlan
-  status: ClinicStatus
+  status?: ClinicStatus
   is_trial: boolean
   trial_ends_at: string | null
   created_at: string

@@ -346,7 +346,7 @@ function initChart(weeklyData: number[]) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: { label: (c) => `₱${c.parsed.y.toLocaleString()}` },
+          callbacks: { label: (c) => `₱${(c.parsed.y ?? 0).toLocaleString()}` },
           backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#cbd5e1',
           padding: 10, cornerRadius: 8,
         }

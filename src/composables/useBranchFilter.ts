@@ -1,6 +1,5 @@
-import { computed, watch, type Ref } from 'vue'
+import { computed, watch } from 'vue'
 import { useBranchStore } from '@/stores/branch'
-import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
 /**
  * Composable for applying branch filtering to data queries.
@@ -33,9 +32,7 @@ export function useBranchFilter() {
    * - If branchId is null: filter .is('branch_id', null) (main branch)
    * - Otherwise: filter .eq('branch_id', branchId) (specific branch)
    */
-  function buildBranchFilter<T extends PostgrestFilterBuilder<any, any, any>>(
-    query: T
-  ): T {
+  function buildBranchFilter<T>(query: T): T {
     // Admins viewing all: no branch filter
     if (isViewingAll.value) {
       return query

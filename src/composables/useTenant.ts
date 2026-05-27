@@ -12,7 +12,7 @@ export function useTenant() {
 
   // Scopes any query builder to the current clinic
   function scopeQuery<T extends { eq: (col: string, val: string) => T }>(query: T): T {
-    return query.eq('clinic_id', clinicId)
+    return query.eq('clinic_id', clinicId as string)
   }
 
   return { clinicId, scopeQuery }

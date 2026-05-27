@@ -133,7 +133,6 @@ import FeatureGate from '@/components/ui/FeatureGate.vue'
 
 const authStore = useAuthStore()
 const { watchBranchChange } = useBranchFilter()
-const { canUseFeature } = useClinic()
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
 const loading = ref(true)

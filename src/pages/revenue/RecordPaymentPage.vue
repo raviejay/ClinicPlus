@@ -134,7 +134,7 @@ const form = ref({ amount: 0, payment_method: 'cash' as const })
 
 const quickAmounts = [100, 200, 300, 500, 1000, 1500]
 
-const methods = [
+const methods: Array<{ value: 'cash' | 'gcash' | 'maya' | 'card' | 'other'; label: string; icon: string }> = [
   { value: 'cash',  label: 'Cash',  icon: '💵' },
   { value: 'gcash', label: 'GCash', icon: '📱' },
   { value: 'maya',  label: 'Maya',  icon: '💜' },

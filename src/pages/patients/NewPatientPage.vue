@@ -102,7 +102,7 @@ async function handleSubmit() {
   errorMsg.value = ''
   existingPatient.value = null
 
-  const { data, error } = await patientService.findOrCreate(authStore.clinic.id, {
+  const { error } = await patientService.findOrCreate(authStore.clinic.id, {
     full_name: form.value.full_name,
     contact_number: form.value.contact_number,
     birthdate: form.value.birthdate || undefined,

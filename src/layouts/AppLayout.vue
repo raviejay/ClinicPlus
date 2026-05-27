@@ -339,12 +339,18 @@ const operationsNav = computed(() => [
   { to: '/reports',      label: 'Reports',         icon: 'bar_chart' },
 ])
 
-const managementNav = [
-  { to: '/admin/users',    label: 'Users',             icon: 'manage_accounts' },
-  { to: '/admin/branches', label: 'Branches',          icon: 'store' },
-  { to: '/admin/settings', label: 'Clinic Settings',   icon: 'settings' },
-  { to: '/admin/branding', label: 'Branding & Themes', icon: 'palette' },
-]
+const managementNav = computed(() => {
+  const items = [
+    { to: '/admin/users',    label: 'Users',             icon: 'manage_accounts' },
+    { to: '/admin/branches', label: 'Branches',          icon: 'store' },
+    { to: '/admin/settings', label: 'Clinic Settings',   icon: 'settings' },
+    { to: '/admin/branding', label: 'Branding & Themes', icon: 'palette' },
+  ]
+  if (authStore.isSuperAdmin) {
+    items.unshift({ to: '/admin/overview', label: 'Global Clinics', icon: 'public' })
+  }
+  return items
+})
 
 const systemNav = [
   { to: '/admin/subscription', label: 'Subscription',   icon: 'credit_card' },
@@ -359,7 +365,11 @@ const mobileNavItems = computed(() => {
     { to: authStore.isDoctor ? '/queue/doctor' : '/queue', label: 'Queue', icon: 'queue' },
     { to: '/revenue',      label: 'Revenue',  icon: 'payments' },
   ]
-  if (authStore.isAdmin) items.push({ to: '/admin/settings', label: 'Settings', icon: 'settings' })
+  if (authStore.isSuperAdmin) {
+    items.push({ to: '/admin/overview', label: 'Clinics', icon: 'public' })
+  } else if (authStore.isAdmin) {
+    items.push({ to: '/admin/settings', label: 'Settings', icon: 'settings' })
+  }
   return items
 })
 

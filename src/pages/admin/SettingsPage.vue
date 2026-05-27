@@ -104,10 +104,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
-import { clinicService } from '@/services/clinic.service'
 import { supabase } from '@/services/supabase'
 import AppLayout from '@/layouts/AppLayout.vue'
 

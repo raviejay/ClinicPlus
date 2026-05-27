@@ -73,10 +73,17 @@ export const clinicService = {
       })
     if (brandingError) return { data: null, error: brandingError.message }
 
-    // 4. Update profile → admin of this clinic
+    // 4. UPSERT profile → admin of this clinic (handles RLS better)
     const { error: profileError } = await supabase
       .from('profiles')
-      .upsert({ id: userId, clinic_id: clinic.id, role: 'admin' })
+      .upsert({ 
+        id: userId, 
+        clinic_id: clinic.id, 
+        role: 'admin',
+        full_name: null
+      }, {
+        onConflict: 'id'
+      })
     if (profileError) return { data: null, error: profileError.message }
 
     return { data: clinic, error: null }
@@ -88,6 +95,15 @@ export const clinicService = {
       .select('*')
       .eq('id', clinicId)
       .single()
+    if (error) return { data: null, error: error.message }
+    return { data, error: null }
+  },
+
+  async getAllClinics(): Promise<ApiResponse<Clinic[]>> {
+    const { data, error } = await supabase
+      .from('clinics')
+      .select('*')
+      .order('created_at', { ascending: false })
     if (error) return { data: null, error: error.message }
     return { data, error: null }
   },

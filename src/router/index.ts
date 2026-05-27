@@ -26,6 +26,8 @@ const router = createRouter({
     { path: '/queue', name: 'queue', component: () => import('@/pages/queue/QueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     { path: '/queue/doctor', name: 'doctor-queue', component: () => import('@/pages/queue/DoctorQueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Admin only
+    { path: '/admin/overview', name: 'admin-overview', component: () => import('@/pages/admin/SuperAdminDashboard.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
+    { path: '/admin/supe-admin', name: 'super-admin', component: () => import('@/pages/admin/SuperAdminPage.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
     { path: '/admin/settings', name: 'admin-settings', component: () => import('@/pages/admin/SettingsPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/users', name: 'admin-users', component: () => import('@/pages/admin/StaffPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/branches', name: 'admin-branches', component: () => import('@/pages/admin/BranchesPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
@@ -45,10 +47,12 @@ router.beforeEach(async (to) => {
   if (!authStore.initialized) await authStore.initialize()
   if (to.meta.requiresAuth && !authStore.user) return { name: 'login' }
   if (to.meta.requiresGuest && authStore.user) {
+    if (authStore.isSuperAdmin) return { name: 'admin-overview' }
     if (!authStore.profile?.clinic_id) return { name: 'clinic-setup' }
     return { name: 'dashboard' }
   }
-  if (to.meta.requiresClinic && authStore.user && !authStore.profile?.clinic_id) return { name: 'clinic-setup' }
+  if (to.meta.requiresClinic && authStore.user && !authStore.profile?.clinic_id && !authStore.isSuperAdmin) return { name: 'clinic-setup' }
+  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) return { name: 'dashboard' }
   if (to.meta.requiresAdmin && !authStore.isAdmin) return { name: 'dashboard' }
 })
 

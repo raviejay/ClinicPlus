@@ -3,7 +3,15 @@ import type { SignupPayload, LoginPayload, ApiResponse, Profile } from '@/types'
 
 export const authService = {
   async signup({ email, password }: SignupPayload): Promise<ApiResponse<{ userId: string }>> {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role: 'user',
+        }
+      }
+    })
     if (error) return { data: null, error: error.message }
     if (!data.user) return { data: null, error: 'Signup failed. Please try again.' }
     return { data: { userId: data.user.id }, error: null }
@@ -22,6 +30,17 @@ export const authService = {
 
   async getSession() {
     const { data } = await supabase.auth.getSession()
+    return data.session
+  },
+
+  async getCurrentUser() {
+    const { data } = await supabase.auth.getUser()
+    return data.user
+  },
+
+  async refreshSession() {
+    const { data, error } = await supabase.auth.refreshSession()
+    if (error) throw error
     return data.session
   },
 
