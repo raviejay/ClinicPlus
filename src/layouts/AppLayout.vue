@@ -4,11 +4,11 @@
     <!-- SIDEBAR -->
     <aside :class="['hidden md:flex flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-100 shadow-sm transition-all duration-300 ease-in-out', sidebarCollapsed ? 'w-[68px]' : 'w-60']">
       <div :class="['flex items-center border-b border-gray-100 transition-all duration-300', sidebarCollapsed ? 'px-3 py-5 justify-center' : 'px-4 py-5 gap-3']">
-        <AppLogo size="sm" :show-dot="true" :show-name="!sidebarCollapsed" class="shrink-0" />
-        <button v-if="!sidebarCollapsed" @click="sidebarCollapsed = true" class="rounded-lg p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0">
-          <span class="material-icons text-base">chevron_left</span>
-        </button>
-      </div>
+  <AppLogo size="sm" :show-dot="true" :show-name="!sidebarCollapsed" class="shrink-0" />
+  <button v-if="!sidebarCollapsed" @click="sidebarCollapsed = true" class="ml-auto rounded-lg p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0">
+    <span class="material-icons text-base">chevron_left</span>
+  </button>
+</div>
       <div v-if="sidebarCollapsed" class="flex justify-center pt-2">
         <button @click="sidebarCollapsed = false" class="rounded-lg p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600">
           <span class="material-icons text-base">chevron_right</span>

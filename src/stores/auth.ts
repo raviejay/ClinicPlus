@@ -34,22 +34,24 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Setup auth state listener - only handle SIGNED_IN and SIGNED_OUT
     const { data } = authService.onAuthStateChange(async (event, session: any) => {
-      try {
-        if (event === 'SIGNED_IN' && session?.user) {
-          user.value = { id: session.user.id, email: session.user.email ?? null }
-          await loadProfile(session.user.id)
-        } else if (event === 'SIGNED_OUT') {
-          user.value = null
-          profile.value = null
-          clinic.value = null
-          clinicSettings.value = null
-          router.push('/login')
-        }
-        // Ignore TOKEN_REFRESHED to prevent unnecessary reloads
-      } catch (err) {
-        console.error(`Auth state change error (${event}):`, err)
-      }
-    })
+  try {
+    if (event === 'SIGNED_IN' && session?.user) {
+      // ✅ Skip reload if it's the same user — tab refocus/token refresh
+      if (user.value?.id === session.user.id) return  // <-- ADD THIS
+
+      user.value = { id: session.user.id, email: session.user.email ?? null }
+      await loadProfile(session.user.id)
+    } else if (event === 'SIGNED_OUT') {
+      user.value = null
+      profile.value = null
+      clinic.value = null
+      clinicSettings.value = null
+      router.push('/login')
+    }
+  } catch (err) {
+    console.error(`Auth state change error (${event}):`, err)
+  }
+})
 
     authSubscription = data?.subscription
   }
