@@ -14,6 +14,11 @@ import { useBranchStore } from '@/stores/branch'
  *   const { branchId, watchBranchChange } = useBranchFilter()
  *   watchBranchChange(() => { loadData() })
  */
+type BranchFilterQuery<T> = {
+  is(column: string, value: unknown): T
+  eq(column: string, value: unknown): T
+}
+
 export function useBranchFilter() {
   const branchStore = useBranchStore()
 
@@ -32,7 +37,7 @@ export function useBranchFilter() {
    * - If branchId is null: filter .is('branch_id', null) (main branch)
    * - Otherwise: filter .eq('branch_id', branchId) (specific branch)
    */
-  function buildBranchFilter<T>(query: T): T {
+  function buildBranchFilter<T extends BranchFilterQuery<T>>(query: T): T {
     // Admins viewing all: no branch filter
     if (isViewingAll.value) {
       return query

@@ -120,6 +120,8 @@ import { paymentService } from '@/services/payment.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { Patient } from '@/types'
 
+type PaymentMethod = 'cash' | 'gcash' | 'maya' | 'card' | 'other'
+
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -130,7 +132,7 @@ const patientError = ref('')
 const saving = ref(false)
 const errorMsg = ref('')
 
-const form = ref({ amount: 0, payment_method: 'cash' as const })
+const form = ref({ amount: 0, payment_method: 'cash' as PaymentMethod })
 
 const quickAmounts = [100, 200, 300, 500, 1000, 1500]
 
