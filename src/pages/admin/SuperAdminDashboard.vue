@@ -197,7 +197,7 @@ import { superadminService, type ClinicWithBranches } from '@/services/superadmi
 import { supabase } from '@/services/supabase'
 import AppLayout from '@/layouts/AppLayout.vue'
 // add ClinicPlan to your import
-import type { AuthUser, Profile, Clinic, ClinicPlan } from '@/types'
+import type { ClinicPlan } from '@/types'
 
 const authStore = useAuthStore()
 const clinics = ref<ClinicWithBranches[]>([])
