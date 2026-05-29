@@ -33,7 +33,7 @@ export const planRestrictionService = {
       }
 
       const current = count ?? 0
-      const max = limits.maxPatients
+      const max = limits.value.maxPatients
       const remaining = Math.max(0, max - current)
 
       return {
@@ -74,7 +74,7 @@ export const planRestrictionService = {
       }
 
       const current = count ?? 0
-      const max = limits.maxStaff
+      const max = limits.value.maxStaff
       const remaining = Math.max(0, max - current)
 
       return {
@@ -114,7 +114,7 @@ export const planRestrictionService = {
       }
 
       const current = count ?? 0
-      const max = limits.maxBranches
+      const max = limits.value.maxBranches
       const remaining = Math.max(0, max - current)
 
       return {
@@ -162,5 +162,3 @@ export const planRestrictionService = {
     }
   }
 }
-
-export type { LimitCheck }

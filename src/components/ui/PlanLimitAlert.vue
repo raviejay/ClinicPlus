@@ -40,11 +40,13 @@
 import { computed } from 'vue'
 import type { LimitCheck } from '@/services/planRestriction.service'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   limitCheck: LimitCheck
   title: string // 'Patients', 'Staff', 'Branches'
   warningThreshold?: number
-}>()
+}>(), {
+  warningThreshold: 5
+})
 
 const message = computed(() => {
   if (props.title === 'Patients') {
