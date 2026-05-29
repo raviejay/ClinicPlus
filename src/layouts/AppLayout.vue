@@ -353,7 +353,7 @@ const managementNav = computed(() => {
 })
 
 const systemNav = [
-  { to: '/admin/subscription', label: 'Subscription',   icon: 'credit_card' },
+  { to: '/admin/billing', label: 'Subscription',   icon: 'credit_card' },
   { to: '/help',               label: 'Help & Support',  icon: 'help' },
 ]
 

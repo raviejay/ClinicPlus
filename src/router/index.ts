@@ -31,6 +31,7 @@ const router = createRouter({
     { path: '/admin/settings', name: 'admin-settings', component: () => import('@/pages/admin/SettingsPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/users', name: 'admin-users', component: () => import('@/pages/admin/StaffPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/branches', name: 'admin-branches', component: () => import('@/pages/admin/BranchesPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
+    { path: '/admin/billing', name: 'admin-billing', component: () => import('@/pages/admin/BillingPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     // Placeholders
     // Revenue
     { path: '/revenue', name: 'revenue', component: () => import('@/pages/revenue/RevenuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },

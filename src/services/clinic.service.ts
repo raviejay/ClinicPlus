@@ -86,6 +86,24 @@ export const clinicService = {
       })
     if (profileError) return { data: null, error: profileError.message }
 
+    // 5. Create initial subscription (14-day PREMIUM trial)
+    const nextBillingDate = new Date()
+    nextBillingDate.setDate(nextBillingDate.getDate() + 14)
+
+    const { error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .insert({
+        clinic_id: clinic.id,
+        plan: 'premium', // Trial = Premium plan ✓
+        status: 'active',
+        payment_link_id: `trial-${clinic.id}`,
+        reference_number: `TRIAL-${clinic.id}`,
+        amount: 199900, // ₱1,999 in cents (premium price)
+        billing_date: new Date().toISOString(),
+        next_billing_date: nextBillingDate.toISOString()
+      })
+    if (subscriptionError) return { data: null, error: subscriptionError.message }
+
     return { data: clinic, error: null }
   },
 

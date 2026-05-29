@@ -300,7 +300,7 @@ const features = [
 const plans = [
   {
     name: 'Starter',
-    price: '399',
+    price: '599',
     tagline: 'For small clinics just getting started',
     featured: false,
     features: ['Up to 50 patients', '1 admin account', 'Appointment booking', 'Public booking page', 'Default branding'],
@@ -308,10 +308,10 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '599',
+    price: '899',
     tagline: 'For clinics with real patient volume',
     featured: true,
-    features: ['Up to 5 users', 'Queue management', 'Basic revenue tracking', 'Limited SMS', '3 layout themes'],
+    features: ['Up to 500 patients', 'Up to 5 users', 'Queue management', 'Basic revenue tracking', 'Limited SMS', '3 layout themes'],
     limits: ['Single branch only'],
   },
   {
@@ -319,14 +319,14 @@ const plans = [
     price: '1,999',
     tagline: 'For serious multi-branch clinics',
     featured: false,
-    features: ['Unlimited users', 'Multi-branch support', 'Full revenue analytics', 'Export Excel + PDF', 'Custom branding + themes', 'Priority support'],
+    features: ['Unlimited patients', 'Unlimited users', 'Multi-branch support', 'Full revenue analytics', 'Export Excel + PDF', 'Custom branding + themes', 'Priority support'],
     limits: [],
   },
 ]
 
 const themes = [
-  { price: '₱399/mo', desc: '1 layout theme included' },
-  { price: '₱599/mo', desc: '3 layout themes included' },
+  { price: '₱599/mo', desc: '1 layout theme included' },
+  { price: '₱899/mo', desc: '3 layout themes included' },
   { price: '₱1,999/mo', desc: '4 themes + custom layout' },
 ]
 </script>

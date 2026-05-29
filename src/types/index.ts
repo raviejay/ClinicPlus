@@ -43,6 +43,21 @@ export interface ClinicSettings {
   multi_branch_enabled: boolean
 }
 
+export interface Subscription {
+  id: string
+  clinic_id: string
+  plan: ClinicPlan
+  status: 'active' | 'pending' | 'cancelled' | 'expired'
+  payment_link_id: string
+  reference_number: string
+  amount: number
+  billing_date: string
+  next_billing_date: string
+  paymongo_payment_id?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ClinicBranding {
   clinic_id: string
   logo_url: string | null
