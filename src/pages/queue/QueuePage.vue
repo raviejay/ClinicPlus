@@ -168,46 +168,19 @@
           </div>
 
           <div class="p-5 space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
-                Contact Number <span class="text-red-400">*</span>
-              </label>
-              <div class="flex gap-2">
-                <input v-model="addForm.contact_number" type="tel" placeholder="09XXXXXXXXX"
-                  class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-                <button @click="lookupForQueue" :disabled="!addForm.contact_number || lookingUp"
-                  class="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-semibold px-4 rounded-xl transition-colors">
-                  {{ lookingUp ? '…' : 'Find' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Patient found/new -->
-            <div v-if="addForm.patient" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-              <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-sm">
-                {{ addForm.patient.full_name.charAt(0) }}
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-green-800">{{ addForm.patient.full_name }}</p>
-                <p class="text-xs text-green-600">{{ addForm.isNew ? 'New patient' : 'Returning patient' }}</p>
-              </div>
-            </div>
-
-            <!-- Name if new -->
-            <div v-if="addForm.showNameField">
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
-                Full Name <span class="text-red-400">*</span>
-              </label>
-              <input v-model="addForm.full_name" type="text" placeholder="Juan Dela Cruz"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-            </div>
+            <PatientLookup
+              ref="patientLookupRef"
+              v-model="selectedPatient"
+              label="Find patient"
+              required
+            />
 
             <div v-if="addError" class="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
               {{ addError }}
             </div>
 
             <button @click="handleAddToQueue"
-              :disabled="addingToQueue || !addForm.contact_number || (addForm.showNameField && !addForm.full_name)"
+              :disabled="addingToQueue"
               class="w-full bg-sky-500 hover:bg-sky-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all text-sm">
               {{ addingToQueue ? 'Adding…' : 'Add to Queue' }}
             </button>
@@ -227,6 +200,7 @@ import { queueService, type QueueWithPatient } from '@/services/queue.service'
 import { patientService } from '@/services/patient.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import FeatureGate from '@/components/ui/FeatureGate.vue'
+import PatientLookup from '@/components/ui/PatientLookup.vue'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Patient } from '@/types'
 
@@ -238,22 +212,13 @@ const loading = ref(true)
 const calling = ref(false)
 const showAddModal = ref(false)
 const addingToQueue = ref(false)
-const lookingUp = ref(false)
 const addError = ref('')
+const selectedPatient = ref<Patient | null>(null)
+const patientLookupRef = ref<InstanceType<typeof PatientLookup> | null>(null)
 const activeTab = ref<'waiting' | 'now_serving' | 'done'>('waiting')
 let realtimeChannel: RealtimeChannel | null = null
 
 const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })
-
-const addForm = ref<{
-  contact_number: string
-  full_name: string
-  patient: Patient | null
-  isNew: boolean
-  showNameField: boolean
-}>({
-  contact_number: '', full_name: '', patient: null, isNew: false, showNameField: false
-})
 
 const tabs = computed(() => [
   { label: 'Waiting',  value: 'waiting' as const,     count: counts.value.waiting },
@@ -306,7 +271,7 @@ async function callSpecific(item: QueueWithPatient) {
 
 async function markDone(item: QueueWithPatient) {
   if (!authStore.clinic?.id) return
-  await queueService.updateStatus(authStore.clinic.id, item.id, 'done')
+  await queueService.markDoneWithAppointment(authStore.clinic.id, item)
   await loadQueue()
   activeTab.value = 'waiting'
 }
@@ -317,27 +282,6 @@ async function skipItem(item: QueueWithPatient) {
   await loadQueue()
 }
 
-async function lookupForQueue() {
-  if (!authStore.clinic?.id || !addForm.value.contact_number) return
-  lookingUp.value = true
-  addForm.value.patient = null
-  addForm.value.showNameField = false
-
-  // Search for existing patient
-  const { data } = await patientService.search(authStore.clinic.id, addForm.value.contact_number)
-  const exact = data?.find(p => p.contact_number === addForm.value.contact_number)
-
-  lookingUp.value = false
-
-  if (exact) {
-    addForm.value.patient = exact
-    addForm.value.isNew = false
-  } else {
-    addForm.value.isNew = true
-    addForm.value.showNameField = true
-  }
-}
-
 async function handleAddToQueue() {
   if (!authStore.clinic?.id) return
   addingToQueue.value = true
@@ -345,14 +289,21 @@ async function handleAddToQueue() {
 
   let patientId: string
 
-  if (addForm.value.patient) {
-    patientId = addForm.value.patient.id
+  if (selectedPatient.value) {
+    patientId = selectedPatient.value.id
   } else {
-    const { data, error } = await patientService.findOrCreate(authStore.clinic.id, {
-      full_name: addForm.value.full_name,
-      contact_number: addForm.value.contact_number,
-    })
-    if (error || !data) { addError.value = error ?? 'Could not create patient'; addingToQueue.value = false; return }
+    const newData = patientLookupRef.value?.getNewPatientData()
+    if (!newData) {
+      addError.value = 'Search and select a patient, or register a new one'
+      addingToQueue.value = false
+      return
+    }
+    const { data, error } = await patientService.findOrCreate(authStore.clinic.id, newData)
+    if (error || !data) {
+      addError.value = error ?? 'Could not create patient'
+      addingToQueue.value = false
+      return
+    }
     patientId = data.id
   }
 
@@ -363,10 +314,14 @@ async function handleAddToQueue() {
 
   addingToQueue.value = false
 
-  if (error) { addError.value = error; return }
+  if (error) {
+    addError.value = error
+    return
+  }
 
-  // Reset and close
-  addForm.value = { contact_number: '', full_name: '', patient: null, isNew: false, showNameField: false }
+  await loadQueue()
+
+  selectedPatient.value = null
   showAddModal.value = false
   activeTab.value = 'waiting'
 }

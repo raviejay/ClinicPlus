@@ -85,7 +85,18 @@
 
             <!-- Payment list -->
             <div>
-              <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Transactions</p>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Transactions</p>
+                <div v-if="summary.payments.length > 0" class="relative flex-1 sm:max-w-xs">
+                  <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                  <input
+                    v-model="paymentSearch"
+                    type="search"
+                    placeholder="Search patient or method…"
+                    class="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-8 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                </div>
+              </div>
 
               <div v-if="summary.payments.length === 0"
                 class="bg-white border border-gray-200 rounded-xl p-8 text-center">
@@ -94,8 +105,12 @@
                 <p class="text-xs text-slate-400 mt-1">Recorded payments will appear here</p>
               </div>
 
+              <div v-else-if="filteredPayments.length === 0" class="bg-white border border-gray-200 rounded-xl p-6 text-center text-sm text-slate-500">
+                No transactions match your search
+              </div>
+
               <div v-else class="space-y-2">
-                <div v-for="payment in summary.payments" :key="payment.id"
+                <div v-for="payment in filteredPayments" :key="payment.id"
                   class="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
@@ -134,7 +149,18 @@ const authStore = useAuthStore()
 const { watchBranchChange } = useBranchFilter()
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
+const paymentSearch = ref('')
 const loading = ref(true)
+
+const filteredPayments = computed(() => {
+  const q = paymentSearch.value.trim().toLowerCase()
+  if (!q) return summary.value.payments
+  return summary.value.payments.filter((payment) => {
+    const name = (payment as { patients?: { full_name?: string } }).patients?.full_name?.toLowerCase() ?? ''
+    const method = payment.payment_method?.toLowerCase() ?? ''
+    return name.includes(q) || method.includes(q)
+  })
+})
 const summary = ref<Awaited<ReturnType<typeof paymentService.getSummary>>>({
   total: 0, byMethod: { cash: 0, gcash: 0, maya: 0, card: 0, other: 0 }, count: 0, payments: []
 })
@@ -183,7 +209,10 @@ async function loadSummary() {
   loading.value = false
 }
 
-watch(selectedDate, loadSummary)
+watch(selectedDate, () => {
+  paymentSearch.value = ''
+  loadSummary()
+})
 
 onMounted(() => {
   loadSummary()

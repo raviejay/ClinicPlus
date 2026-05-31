@@ -7,7 +7,88 @@ export type ClinicPlan = 'starter' | 'pro' | 'premium'
 export type ClinicStatus = 'active' | 'suspended' | 'cancelled'
 export type BookingMode = 'auto_assign' | 'doctor_selection' | 'hybrid'
 export type QueueStatus = 'waiting' | 'now_serving' | 'done' | 'skipped'
-export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+/**
+ * DB-backed statuses — must match the Postgres CHECK constraint on appointments.status.
+ * If you need 'arrived' | 'checked_in' | 'consulting', add them to the DB migration first:
+ *   ALTER TABLE appointments DROP CONSTRAINT appointments_status_check;
+ *   ALTER TABLE appointments ADD CONSTRAINT appointments_status_check
+ *     CHECK (status = ANY (ARRAY[
+ *       'pending','confirmed','in_queue','completed','cancelled','no_show',
+ *       'arrived','checked_in','consulting'
+ *     ]));
+ */
+export type AppointmentStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'in_queue'
+  | 'completed'
+  | 'cancelled'
+  | 'no_show'
+
+/**
+ * Extended display-only statuses for UI labels/badges.
+ * Do NOT write these to the DB until the migration above is applied.
+ */
+export type AppointmentDisplayStatus = AppointmentStatus | 'arrived' | 'checked_in' | 'consulting'
+
+// Service categories — broad enough for any clinic type
+export interface ServiceCategory {
+  id: string
+  label: string
+  icon: string
+  services: string[]
+}
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = [
+  {
+    id: 'consultation',
+    label: 'Consultation',
+    icon: '🩺',
+    services: ['General Check-up', 'Follow-up Consultation', 'New Patient Visit', 'Specialist Consultation', 'Telemedicine / Virtual Visit'],
+  },
+  {
+    id: 'preventive',
+    label: 'Preventive Care',
+    icon: '🛡️',
+    services: ['Routine Physical Exam', 'Vaccination / Immunization', 'Health Screening', 'Annual Wellness Visit', 'Pre-employment Clearance'],
+  },
+  {
+    id: 'diagnostics',
+    label: 'Diagnostics & Lab',
+    icon: '🔬',
+    services: ['Blood Test / Lab Work', 'X-Ray', 'Ultrasound', 'ECG / EKG', 'Urinalysis', 'Other Diagnostic Test'],
+  },
+  {
+    id: 'procedure',
+    label: 'Procedure / Treatment',
+    icon: '⚕️',
+    services: ['Minor Procedure', 'Wound Care / Dressing', 'Injection / IV Therapy', 'Physical Therapy', 'Dental Procedure', 'Eye Procedure', 'Other Treatment'],
+  },
+  {
+    id: 'maternal',
+    label: 'Maternal & Child Health',
+    icon: '👶',
+    services: ['Prenatal Check-up', 'Postnatal Visit', 'Newborn Care', 'Child Well-Baby Visit', 'Family Planning'],
+  },
+  {
+    id: 'mental',
+    label: 'Mental & Behavioral Health',
+    icon: '🧠',
+    services: ['Mental Health Consultation', 'Counseling / Therapy', 'Psychiatric Follow-up', 'Stress / Anxiety Management'],
+  },
+  {
+    id: 'emergency',
+    label: 'Urgent / Emergency',
+    icon: '🚨',
+    services: ['Acute Illness Visit', 'Injury / Accident', 'Fever / Pain Management', 'Emergency Consultation'],
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    icon: '📋',
+    services: ['Medical Certificate', 'Referral Letter', 'Other (please specify in notes)'],
+  },
+]
 export type PaymentMethod = 'cash' | 'gcash' | 'maya' | 'card' | 'other'
 export type PaymentStatus = 'paid' | 'refunded' | 'pending'
 export type Gender = 'male' | 'female' | 'other'
@@ -82,6 +163,7 @@ export interface Patient {
   branch_id: string | null
   full_name: string
   contact_number: string
+  email: string | null
   birthdate: string | null
   gender: Gender | null
   address: string | null
@@ -97,6 +179,8 @@ export interface Appointment {
   appointment_date: string
   time_slot: string | null
   status: AppointmentStatus
+  service_category: string | null
+  service_name: string | null
   notes: string | null
   created_at: string
 }

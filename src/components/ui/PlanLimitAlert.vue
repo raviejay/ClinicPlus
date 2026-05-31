@@ -50,9 +50,12 @@ const props = withDefaults(defineProps<{
 
 const message = computed(() => {
   if (props.title === 'Patients') {
-    return `Your ${props.limitCheck.planName} plan includes up to ${props.limitCheck.max} patients. Upgrade to add more.`
+    return `Your ${props.limitCheck.planName} plan includes up to ${props.limitCheck.max} new patients per month. Upgrade to add more.`
   } else if (props.title === 'Staff') {
-    return `Your ${props.limitCheck.planName} plan allows up to ${props.limitCheck.max} staff members. Upgrade to add more.`
+    if (props.limitCheck.max <= 1) {
+      return `Your ${props.limitCheck.planName} plan includes only the admin account. Upgrade to Pro to add doctors and staff.`
+    }
+    return `Your ${props.limitCheck.planName} plan allows up to ${props.limitCheck.max} dashboard users (admin + team). Upgrade to add more.`
   } else if (props.title === 'Branches') {
     return `Your ${props.limitCheck.planName} plan allows up to ${props.limitCheck.max} ${props.limitCheck.max === 1 ? 'branch' : 'branches'}. Upgrade for multi-branch support.`
   }

@@ -33,13 +33,14 @@ export function useClinic() {
     if (isTrialActive.value) return true
 
     const gates: Record<string, ClinicPlan[]> = {
-      queue:           ['pro', 'premium'],
-      revenue:         ['pro', 'premium'],
-      sms:             ['pro', 'premium'],
-      multi_branch:    ['premium'],
-      export:          ['premium'],
-      custom_branding: ['premium'],
-      advanced_reports:['premium'],
+      queue:                ['pro', 'premium'],
+      revenue:              ['pro', 'premium'],
+      email_notifications:  ['pro', 'premium'],
+      doctor_selection:     ['pro', 'premium'],
+      multi_branch:         ['premium'],
+      full_analytics:       ['premium'],
+      custom_branding:      ['premium'],
+      priority_support:     ['premium'],
     }
 
     const allowed = gates[feature]

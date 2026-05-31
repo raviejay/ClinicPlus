@@ -95,7 +95,7 @@
       <div class="bg-sky-50 border border-sky-100 rounded-2xl p-8 text-center">
         <p class="text-sm text-slate-500 mb-4">Every clinic gets its own public booking page</p>
         <div class="inline-flex items-center bg-white border-2 border-sky-400 rounded-xl px-6 py-3 font-mono text-base font-semibold">
-          <span class="text-slate-400">yourapp.com/book/</span>
+          <span class="text-slate-400">clinicgo.app/book/</span>
           <span class="text-sky-500">smile-dental-quezon</span>
         </div>
         <p class="text-xs text-slate-400 mt-4">Patients book without creating an account. No passwords. No friction. Just name + number + date.</p>
@@ -155,8 +155,8 @@
             </li>
           </ul>
           <ul v-if="plan.limits.length" class="space-y-1.5 mb-6">
-            <li v-for="lim in plan.limits" :key="lim" class="flex items-start gap-2 text-xs text-slate-300">
-              <span class="mt-0.5">✗</span> {{ lim }}
+            <li v-for="lim in plan.limits" :key="lim" class="flex items-start gap-2 text-xs text-slate-400">
+              <span class="mt-0.5">🔒</span> {{ lim }}
             </li>
           </ul>
 
@@ -201,7 +201,7 @@
             <span class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
             <span class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
             <span class="ml-2 flex-1 bg-white border border-gray-200 rounded text-xs text-gray-400 px-3 py-1">
-              yourapp.com/book/smile-dental
+              clinicgo.app/book/smile-dental
             </span>
           </div>
           <div class="p-5">
@@ -246,7 +246,7 @@
     <footer class="border-t border-gray-100 py-6 px-6">
       <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
         <AppLogo size="sm" />
-        <p class="text-xs text-slate-400">© 2025 Cliniko. Built for Philippine clinics 🇵🇭</p>
+        <p class="text-xs text-slate-400">© 2025 ClinicGo. Built for Philippine clinics 🇵🇭</p>
       </div>
     </footer>
 
@@ -303,23 +303,60 @@ const plans = [
     price: '599',
     tagline: 'For small clinics just getting started',
     featured: false,
-    features: ['Up to 50 patients', '1 admin account', 'Appointment booking', 'Public booking page', 'Default branding'],
-    limits: ['No queue system', 'No revenue tracking', 'Single branch only'],
+    features: [
+      'Up to 100 new patients per month (resets every month)',
+      'Admin account only',
+      'Appointment booking',
+      'Public booking page',
+    ],
+    limits: [
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications',
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+    ],
   },
   {
     name: 'Pro',
     price: '899',
     tagline: 'For clinics with real patient volume',
     featured: true,
-    features: ['Up to 500 patients', 'Up to 5 users', 'Queue management', 'Basic revenue tracking', 'Limited SMS', '3 layout themes'],
-    limits: ['Single branch only'],
+    features: [
+      'Up to 1,000 new patients per month (resets every month)',
+      'Up to 5 staff accounts',
+      'Appointment booking',
+      'Public booking page',
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications to patients',
+    ],
+    limits: [
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+      'Multi-branch',
+    ],
   },
   {
     name: 'Premium',
     price: '1,999',
     tagline: 'For serious multi-branch clinics',
     featured: false,
-    features: ['Unlimited patients', 'Unlimited users', 'Multi-branch support', 'Full revenue analytics', 'Export Excel + PDF', 'Custom branding + themes', 'Priority support'],
+    features: [
+      'Unlimited new patients per month',
+      'Unlimited staff accounts',
+      'Up to 5 branches',
+      'Appointment booking',
+      'Public booking page',
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications to patients',
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+    ],
     limits: [],
   },
 ]

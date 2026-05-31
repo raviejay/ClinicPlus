@@ -16,7 +16,7 @@
 
         <div class="mb-8 text-center">
           <h1 class="text-2xl font-black tracking-tight text-slate-900 mb-1">Welcome back</h1>
-          <p class="text-slate-400 text-sm">Sign in to your Cliniko dashboard</p>
+          <p class="text-slate-400 text-sm">Sign in to your ClinicGo dashboard</p>
         </div>
 
         <div class="bg-white border border-gray-200 rounded-2xl p-7 shadow-sm">

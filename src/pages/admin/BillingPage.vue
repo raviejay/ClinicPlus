@@ -119,9 +119,14 @@
             ₱{{ plan.price.toLocaleString('en-US') }}
             <span class="text-sm font-normal text-slate-500">/month</span>
           </div>
-          <ul class="space-y-2 text-sm text-slate-700 mb-6">
+          <ul :class="['space-y-2 text-sm text-slate-700', plan.limits.length ? 'mb-4' : 'mb-6']">
             <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
               <span class="text-green-500 font-bold mt-0.5">✓</span> {{ feature }}
+            </li>
+          </ul>
+          <ul v-if="plan.limits.length" class="space-y-2 text-sm text-slate-400 mb-6">
+            <li v-for="limit in plan.limits" :key="limit" class="flex items-start gap-2">
+              <span class="text-slate-300 font-bold mt-0.5">🔒</span> {{ limit }}
             </li>
           </ul>
 
@@ -231,7 +236,7 @@
           <p class="text-slate-500 mb-2">
             Your <span class="font-bold text-slate-700">{{ activatedPlanName }}</span> plan is now active.
           </p>
-          <p class="text-xs text-slate-400 mb-8">Thank you for subscribing to ClinicPlus.</p>
+          <p class="text-xs text-slate-400 mb-8">Thank you for subscribing to ClinicGo.</p>
           <button @click="closeSuccessModal"
             class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors">
             Continue
@@ -299,19 +304,59 @@ const availablePlans = [
     id: 'starter' as ClinicPlan,
     name: 'Starter',
     price: 599,
-    features: ['Up to 50 patients', '1 admin account', 'Appointment booking', 'Public booking page']
+    features: [
+      'Up to 100 new patients per month (resets every month)',
+      'Admin account only',
+      'Appointment booking',
+      'Public booking page',
+    ],
+    limits: [
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications',
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+    ],
   },
   {
     id: 'pro' as ClinicPlan,
     name: 'Pro',
     price: 899,
-    features: ['Up to 500 patients', 'Up to 5 users', 'Queue management', 'Revenue tracking']
+    features: [
+      'Up to 1,000 new patients per month (resets every month)',
+      'Up to 5 staff accounts',
+      'Appointment booking',
+      'Public booking page',
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications to patients',
+    ],
+    limits: [
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+      'Multi-branch',
+    ],
   },
   {
     id: 'premium' as ClinicPlan,
     name: 'Premium',
     price: 1999,
-    features: ['Unlimited patients', 'Unlimited users', 'Multi-branch', 'Full analytics', 'Custom branding']
+    features: [
+      'Unlimited new patients per month',
+      'Unlimited staff accounts',
+      'Up to 5 branches',
+      'Appointment booking',
+      'Public booking page',
+      'Queue management',
+      'Revenue tracking',
+      'Email notifications to patients',
+      'Full analytics',
+      'Custom branding',
+      'Priority support',
+    ],
+    limits: [] as string[],
   },
 ]
 

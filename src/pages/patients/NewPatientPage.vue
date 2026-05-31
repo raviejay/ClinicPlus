@@ -11,6 +11,8 @@
         <h1 class="text-xl font-black tracking-tight text-slate-900">Add Patient</h1>
       </div>
 
+      <PlanLimitAlert v-if="patientLimit" :limit-check="patientLimit" title="Patients" />
+
       <div class="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
 
         <div>
@@ -81,20 +83,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useClinic } from '@/composables/useClinic'
 import { patientService } from '@/services/patient.service'
+import { planRestrictionService } from '@/services/planRestriction.service'
 import AppLayout from '@/layouts/AppLayout.vue'
-import type { Patient } from '@/types'
+import PlanLimitAlert from '@/components/ui/PlanLimitAlert.vue'
+import type { Patient, ClinicPlan } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { plan, isTrialActive } = useClinic()
 
 const form = ref({ full_name: '', contact_number: '', birthdate: '', gender: '', address: '' })
 const saving = ref(false)
 const errorMsg = ref('')
 const existingPatient = ref<Patient | null>(null)
+const patientLimit = ref<Awaited<ReturnType<typeof planRestrictionService.checkPatientLimit>>['data']>(null)
+
+const effectivePlan = computed((): ClinicPlan =>
+  isTrialActive.value ? 'premium' : (plan.value as ClinicPlan)
+)
+
+async function loadPatientLimit() {
+  if (!authStore.clinic?.id) return
+  const result = await planRestrictionService.checkPatientLimit(authStore.clinic.id, effectivePlan.value)
+  patientLimit.value = result.data
+}
 
 async function handleSubmit() {
   if (!authStore.clinic?.id) return
@@ -102,17 +119,26 @@ async function handleSubmit() {
   errorMsg.value = ''
   existingPatient.value = null
 
+  await loadPatientLimit()
+  if (patientLimit.value && !patientLimit.value.allowed) {
+    errorMsg.value = `Monthly new patient limit reached (${patientLimit.value.current}/${patientLimit.value.max}). Upgrade your plan to add more patients this month.`
+    saving.value = false
+    return
+  }
+
   const { error } = await patientService.findOrCreate(authStore.clinic.id, {
     full_name: form.value.full_name,
     contact_number: form.value.contact_number,
     birthdate: form.value.birthdate || undefined,
     gender: form.value.gender || undefined,
     address: form.value.address || undefined,
-  })
+  }, { plan: effectivePlan.value })
 
   saving.value = false
 
   if (error) { errorMsg.value = error; return }
   router.push('/patients')
 }
+
+onMounted(loadPatientLimit)
 </script>

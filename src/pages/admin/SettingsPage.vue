@@ -28,7 +28,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug</label>
             <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-slate-50">
-              <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">cliniko.app/book/</span>
+              <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">clinicgo.app/book/</span>
               <input v-model="form.slug" type="text"
                 class="flex-1 px-3 py-3 text-sm text-sky-600 font-mono bg-transparent focus:outline-none" />
             </div>

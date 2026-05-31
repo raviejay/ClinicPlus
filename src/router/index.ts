@@ -27,7 +27,7 @@ const router = createRouter({
     { path: '/queue/doctor', name: 'doctor-queue', component: () => import('@/pages/queue/DoctorQueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Admin only
     { path: '/admin/overview', name: 'admin-overview', component: () => import('@/pages/admin/SuperAdminDashboard.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
-    { path: '/admin/supe-admin', name: 'super-admin', component: () => import('@/pages/admin/SuperAdminPage.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
+    { path: '/admin/super-admin', name: 'super-admin', component: () => import('@/pages/admin/SuperAdminPage.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
     { path: '/admin/settings', name: 'admin-settings', component: () => import('@/pages/admin/SettingsPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/users', name: 'admin-users', component: () => import('@/pages/admin/StaffPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },
     { path: '/admin/branches', name: 'admin-branches', component: () => import('@/pages/admin/BranchesPage.vue'), meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true } },

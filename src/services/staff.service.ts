@@ -24,7 +24,7 @@ export const staffService = {
     payload: { email: string; full_name: string; role: "doctor" | "staff" },
   ): Promise<ApiResponse<{ password: string }>> {
     // Generate a simple readable temp password
-    const tempPassword = "Cliniko@" + Math.floor(1000 + Math.random() * 9000);
+    const tempPassword = "ClinicGo@" + Math.floor(1000 + Math.random() * 9000);
 
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: payload.email,

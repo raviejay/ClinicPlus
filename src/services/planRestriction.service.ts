@@ -1,9 +1,12 @@
 // Plan Restriction Enforcement Service
-// Validates operations against clinic's subscription plan limits
+// Validates operations against the clinic's subscription plan limits.
+// Uses getLimits() from @/utils/planLimits — NOT the Vue composable,
+// which must only be called inside component setup().
 
 import { supabase } from './supabase'
+import { usageService } from './usage.service'
 import type { ClinicPlan, ApiResponse } from '@/types'
-import { useSubscriptionPlan } from '@/composables/useSubscriptionPlan'
+import { getLimits, getPlanName } from '@/utils/planLimits'
 
 export interface LimitCheck {
   allowed: boolean
@@ -14,26 +17,21 @@ export interface LimitCheck {
 }
 
 export const planRestrictionService = {
-  // Check if clinic can add more patients
+  /**
+   * Checks new patients registered THIS MONTH against the plan's monthly limit.
+   * e.g. Starter = max 100 new patients per month, resets each billing cycle.
+   */
   async checkPatientLimit(clinicId: string, plan: ClinicPlan): Promise<ApiResponse<LimitCheck>> {
     try {
-      const { limits } = useSubscriptionPlan(plan)
-      
-      // Count existing patients
-      const { count, error: countError } = await supabase
-        .from('patients')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId)
+      const limits = getLimits(plan)
 
-      if (countError) {
-        return { 
-          data: null, 
-          error: `Failed to check patient count: ${countError.message}` 
-        }
+      const usageResult = await usageService.getMonthlyUsage(clinicId)
+      if (usageResult.error) {
+        return { data: null, error: `Failed to check monthly patient count: ${usageResult.error}` }
       }
 
-      const current = count ?? 0
-      const max = limits.value.maxPatients
+      const current = usageResult.data?.new_patients_count ?? 0
+      const max = limits.maxPatients
       const remaining = Math.max(0, max - current)
 
       return {
@@ -42,24 +40,23 @@ export const planRestrictionService = {
           remaining,
           max,
           current,
-          planName: plan.charAt(0).toUpperCase() + plan.slice(1)
+          planName: getPlanName(plan),
         },
-        error: null
+        error: null,
       }
     } catch (err) {
       return {
         data: null,
-        error: err instanceof Error ? err.message : 'Unknown error checking patient limit'
+        error: err instanceof Error ? err.message : 'Unknown error checking patient limit',
       }
     }
   },
 
-  // Check if clinic can add more staff
+  // Starter = admin login only (1 total). Pro/Premium cap total dashboard users.
   async checkStaffLimit(clinicId: string, plan: ClinicPlan): Promise<ApiResponse<LimitCheck>> {
     try {
-      const { limits } = useSubscriptionPlan(plan)
-      
-      // Count existing staff (profiles with this clinic_id)
+      const limits = getLimits(plan)
+
       const { count, error: countError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -67,88 +64,81 @@ export const planRestrictionService = {
         .in('role', ['admin', 'doctor', 'staff'])
 
       if (countError) {
-        return { 
-          data: null, 
-          error: `Failed to check staff count: ${countError.message}` 
-        }
+        return { data: null, error: `Failed to check staff count: ${countError.message}` }
       }
 
       const current = count ?? 0
-      const max = limits.value.maxStaff
+      const max = limits.maxStaff
       const remaining = Math.max(0, max - current)
 
       return {
         data: {
-          allowed: remaining > 0,
+          allowed: current < max,
           remaining,
           max,
           current,
-          planName: plan.charAt(0).toUpperCase() + plan.slice(1)
+          planName: getPlanName(plan),
         },
-        error: null
+        error: null,
       }
     } catch (err) {
       return {
         data: null,
-        error: err instanceof Error ? err.message : 'Unknown error checking staff limit'
+        error: err instanceof Error ? err.message : 'Unknown error checking staff limit',
       }
     }
   },
 
-  // Check if clinic can add more branches
   async checkBranchLimit(clinicId: string, plan: ClinicPlan): Promise<ApiResponse<LimitCheck>> {
     try {
-      const { limits } = useSubscriptionPlan(plan)
-      
-      // Count existing branches
+      const limits = getLimits(plan)
+
       const { count, error: countError } = await supabase
         .from('branches')
         .select('*', { count: 'exact', head: true })
         .eq('clinic_id', clinicId)
 
       if (countError) {
-        return { 
-          data: null, 
-          error: `Failed to check branch count: ${countError.message}` 
-        }
+        return { data: null, error: `Failed to check branch count: ${countError.message}` }
       }
 
       const current = count ?? 0
-      const max = limits.value.maxBranches
+      const max = limits.maxBranches
       const remaining = Math.max(0, max - current)
 
       return {
         data: {
-          allowed: remaining > 0,
+          allowed: max > 0 && remaining > 0,
           remaining,
           max,
           current,
-          planName: plan.charAt(0).toUpperCase() + plan.slice(1)
+          planName: getPlanName(plan),
         },
-        error: null
+        error: null,
       }
     } catch (err) {
       return {
         data: null,
-        error: err instanceof Error ? err.message : 'Unknown error checking branch limit'
+        error: err instanceof Error ? err.message : 'Unknown error checking branch limit',
       }
     }
   },
 
-  // Get all limits for a plan
   async getAllLimits(clinicId: string, plan: ClinicPlan): Promise<ApiResponse<{
     patients: LimitCheck
     staff: LimitCheck
     branches: LimitCheck
   }>> {
-    const patientCheck = await this.checkPatientLimit(clinicId, plan)
-    const staffCheck = await this.checkStaffLimit(clinicId, plan)
-    const branchCheck = await this.checkBranchLimit(clinicId, plan)
+    const [patientCheck, staffCheck, branchCheck] = await Promise.all([
+      this.checkPatientLimit(clinicId, plan),
+      this.checkStaffLimit(clinicId, plan),
+      this.checkBranchLimit(clinicId, plan),
+    ])
 
     if (patientCheck.error || staffCheck.error || branchCheck.error) {
       return {
         data: null,
-        error: patientCheck.error || staffCheck.error || branchCheck.error || 'Failed to check limits'
+        error: patientCheck.error ?? staffCheck.error ?? branchCheck.error ?? 'Failed to check limits',
       }
     }
 
@@ -156,9 +146,9 @@ export const planRestrictionService = {
       data: {
         patients: patientCheck.data!,
         staff: staffCheck.data!,
-        branches: branchCheck.data!
+        branches: branchCheck.data!,
       },
-      error: null
+      error: null,
     }
-  }
+  },
 }

@@ -3,7 +3,7 @@
     <div class="relative">
       <img
         src="/logo.png"
-        alt="Cliniko"
+        alt="ClinicGo"
         :class="sizeClass"
         class="object-contain rounded-xl"
         @error="imgError = true"
@@ -32,7 +32,7 @@
       v-if="showName"
       :class="['font-black tracking-tight text-slate-900', nameClass]"
     >
-      Cliniko
+      ClinicGo
     </span>
   </div>
 </template>

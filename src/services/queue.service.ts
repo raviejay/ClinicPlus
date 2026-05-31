@@ -5,6 +5,8 @@ import { useBranchFilter } from '@/composables/useBranchFilter'
 export type QueueWithPatient = Queue & {
   patients: { full_name: string; contact_number: string } | null
   profiles: { full_name: string | null } | null
+  // appointment_id is on Queue already; this gives us the linked appt for status sync
+  appointment_id?: string | null
 }
 
 export const queueService = {
@@ -19,7 +21,6 @@ export const queueService = {
       .eq('queue_date', today)
 
     query = buildBranchFilter(query)
-
     if (doctorId) query = query.eq('doctor_id', doctorId)
 
     const { data, error } = await query.order('priority_number', { ascending: true })
@@ -64,11 +65,11 @@ export const queueService = {
         status: 'waiting',
         queue_date: today,
       })
-      .select()
+      .select('*, patients(full_name, contact_number), profiles(full_name)')
       .single()
 
     if (error) return { data: null, error: error.message }
-    return { data: queue, error: null }
+    return { data: queue as QueueWithPatient, error: null }
   },
 
   async updateStatus(
@@ -89,6 +90,36 @@ export const queueService = {
       .single()
 
     if (error) return { data: null, error: error.message }
+    return { data, error: null }
+  },
+
+  /**
+   * Mark a queue entry as done AND sync the linked appointment to 'completed'.
+   *
+   * This is the correct end of the flow:
+   *   Queue: now_serving → done
+   *   Appointment (if linked): in_queue → completed
+   *
+   * Always use this instead of updateStatus(id, 'done') so appointment
+   * status stays in sync.
+   */
+  async markDoneWithAppointment(
+    clinicId: string,
+    queueItem: QueueWithPatient
+  ): Promise<ApiResponse<Queue>> {
+    // 1. Mark queue as done
+    const { data, error } = await this.updateStatus(clinicId, queueItem.id, 'done')
+    if (error) return { data: null, error }
+
+    // 2. If this queue entry came from a check-in, complete the appointment too
+    if (queueItem.appointment_id) {
+      await supabase
+        .from('appointments')
+        .update({ status: 'completed' })
+        .eq('clinic_id', clinicId)
+        .eq('id', queueItem.appointment_id)
+    }
+
     return { data, error: null }
   },
 
@@ -124,7 +155,6 @@ export const queueService = {
       .eq('queue_date', today)
 
     query = buildBranchFilter(query)
-
     const { count } = await query
     return count ?? 0
   },
@@ -140,12 +170,10 @@ export const queueService = {
       .eq('status', 'waiting')
 
     query = buildBranchFilter(query)
-
     const { count } = await query
     return count ?? 0
   },
 
-  // Realtime subscription
   subscribeToQueue(clinicId: string, callback: () => void) {
     const today = new Date().toISOString().split('T')[0]
     return supabase

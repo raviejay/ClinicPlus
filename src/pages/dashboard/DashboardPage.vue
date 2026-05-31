@@ -301,12 +301,13 @@ const quickActions = [
 ]
 
 const planFeatures = [
-  { key: 'queue',           label: 'Queue management' },
-  { key: 'revenue',         label: 'Revenue tracking' },
-  { key: 'sms',             label: 'SMS notifications' },
-  { key: 'multi_branch',    label: 'Multi-branch' },
-  { key: 'export',          label: 'Export reports' },
-  { key: 'custom_branding', label: 'Custom branding' },
+  { key: 'queue',               label: 'Queue management' },
+  { key: 'revenue',             label: 'Revenue tracking' },
+  { key: 'email_notifications', label: 'Email notifications' },
+  { key: 'multi_branch',        label: 'Multi-branch' },
+  { key: 'full_analytics',      label: 'Full analytics' },
+  { key: 'custom_branding',     label: 'Custom branding' },
+  { key: 'priority_support',    label: 'Priority support' },
 ]
 
 function initChart(weeklyData: number[]) {

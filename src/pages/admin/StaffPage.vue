@@ -8,11 +8,14 @@
           <p class="text-xs text-slate-400 mt-0.5">{{ staff.length }} member{{ staff.length !== 1 ? 's' : '' }}</p>
         </div>
         <button @click="openAdd"
-          class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
+          :disabled="!!(staffLimit && !staffLimit.allowed)"
+          class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
           <span class="material-icons text-sm">add</span>
           Add
         </button>
       </div>
+
+      <PlanLimitAlert v-if="staffLimit" :limit-check="staffLimit" title="Staff" />
 
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
@@ -200,17 +203,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchStore } from '@/stores/branch'
+import { useClinic } from '@/composables/useClinic'
 import { staffService } from '@/services/staff.service'
 import { branchService } from '@/services/branch.service'
+import { planRestrictionService } from '@/services/planRestriction.service'
 import { supabase } from '@/services/supabase'
 import AppLayout from '@/layouts/AppLayout.vue'
-import type { Profile, Branch } from '@/types'
+import PlanLimitAlert from '@/components/ui/PlanLimitAlert.vue'
+import type { Profile, Branch, ClinicPlan } from '@/types'
 
 const authStore = useAuthStore()
 const branchStore = useBranchStore()
+const { plan, isTrialActive } = useClinic()
+
+const effectivePlan = computed((): ClinicPlan =>
+  isTrialActive.value ? 'premium' : (plan.value as ClinicPlan)
+)
 
 const staff = ref<Profile[]>([])
 const branches = ref<Branch[]>([])
@@ -220,12 +231,19 @@ const saving = ref(false)
 const errorMsg = ref('')
 const createdCredentials = ref<{ password: string } | null>(null)
 const editingMember = ref<Profile | null>(null)
+const staffLimit = ref<Awaited<ReturnType<typeof planRestrictionService.checkStaffLimit>>['data']>(null)
 
 const form = ref({ full_name: '', email: '', role: 'doctor' as 'doctor' | 'staff', branch_id: '' })
 
 function getBranchName(branchId: string | null) {
   if (!branchId) return null
   return branches.value.find(b => b.id === branchId)?.name ?? null
+}
+
+async function loadStaffLimit() {
+  if (!authStore.clinic?.id) return
+  const result = await planRestrictionService.checkStaffLimit(authStore.clinic.id, effectivePlan.value)
+  staffLimit.value = result.data
 }
 
 async function loadStaff() {
@@ -243,6 +261,7 @@ async function loadBranches() {
 }
 
 function openAdd() {
+  if (staffLimit.value && !staffLimit.value.allowed) return
   editingMember.value = null
   form.value = { full_name: '', email: '', role: 'doctor', branch_id: '' }
   errorMsg.value = ''
@@ -271,6 +290,15 @@ async function handleAdd() {
   saving.value = true
   errorMsg.value = ''
 
+  await loadStaffLimit()
+  if (staffLimit.value && !staffLimit.value.allowed) {
+    errorMsg.value = staffLimit.value.max <= 1
+      ? 'Starter plan includes only your admin account. Upgrade to Pro to add doctors and staff.'
+      : `Dashboard user limit reached (${staffLimit.value.current}/${staffLimit.value.max}). Upgrade your plan to add more team members.`
+    saving.value = false
+    return
+  }
+
   const { data, error } = await staffService.invite(authStore.clinic.id, {
     email: form.value.email,
     full_name: form.value.full_name,
@@ -291,6 +319,7 @@ async function handleAdd() {
   saving.value = false
   createdCredentials.value = data
   await loadStaff()
+  await loadStaffLimit()
 }
 
 async function handleUpdateBranch() {
@@ -326,6 +355,6 @@ async function copyPassword() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadStaff(), loadBranches()])
+  await Promise.all([loadStaff(), loadBranches(), loadStaffLimit()])
 })
 </script>
