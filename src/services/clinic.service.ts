@@ -146,6 +146,28 @@ export const clinicService = {
     return { data, error: null }
   },
 
+  async updateBranding(clinicId: string, payload: Partial<ClinicBranding>): Promise<ApiResponse<ClinicBranding>> {
+    const { data, error } = await supabase
+      .from('clinic_branding')
+      .update(payload)
+      .eq('clinic_id', clinicId)
+      .select()
+      .single()
+    if (error) return { data: null, error: error.message }
+    return { data, error: null }
+  },
+
+  async uploadLogo(clinicId: string, file: File): Promise<ApiResponse<string>> {
+    const ext = file.name.split('.').pop()
+    const path = `logos/${clinicId}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('clinic-assets')
+      .upload(path, file, { upsert: true })
+    if (uploadError) return { data: null, error: uploadError.message }
+    const { data } = supabase.storage.from('clinic-assets').getPublicUrl(path)
+    return { data: data.publicUrl, error: null }
+  },
+
   // Used for public booking page — fetches by slug, no auth needed
   async getClinicBySlug(slug: string): Promise<ApiResponse<Clinic & { clinic_branding: ClinicBranding | null, clinic_settings: ClinicSettings | null }>> {
     const { data, error } = await supabase

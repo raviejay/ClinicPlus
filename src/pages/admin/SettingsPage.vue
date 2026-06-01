@@ -126,13 +126,11 @@ const form = ref({
 const settingsForm = ref({
   booking_mode: authStore.clinicSettings?.booking_mode ?? 'auto_assign',
   queue_enabled: authStore.clinicSettings?.queue_enabled ?? false,
-  sms_enabled: authStore.clinicSettings?.sms_enabled ?? false,
   multi_branch_enabled: authStore.clinicSettings?.multi_branch_enabled ?? false,
 })
 
 const toggleSettings = [
   { key: 'queue_enabled',        label: 'Queue system',     desc: 'Enable walk-in queue management',          planRequired: 'Pro+' },
-  { key: 'sms_enabled',          label: 'SMS notifications', desc: 'Send SMS reminders to patients',          planRequired: 'Pro+' },
   { key: 'multi_branch_enabled', label: 'Multi-branch',     desc: 'Operate multiple clinic branches',         planRequired: 'Premium' },
 ]
 

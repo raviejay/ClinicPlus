@@ -3,205 +3,285 @@
 
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-10 h-10 border-[3px] border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm text-slate-400 font-medium">Loading clinic…</p>
+      </div>
     </div>
 
     <!-- Clinic not found -->
-    <div v-else-if="!clinic" class="flex-1 flex items-center justify-center p-4 text-center">
-      <div>
-        <div class="text-4xl mb-4">🏥</div>
+    <div v-else-if="!clinic" class="flex-1 flex items-center justify-center p-6 text-center">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-sm w-full">
+        <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="material-icons text-slate-400 text-3xl">local_hospital</span>
+        </div>
         <h1 class="text-lg font-bold text-slate-900 mb-2">Clinic not found</h1>
         <p class="text-sm text-slate-400">This booking page doesn't exist or has been disabled.</p>
       </div>
     </div>
 
-    <!-- Success -->
-    <div v-else-if="submitted" class="flex-1 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl border border-gray-200 p-8 max-w-sm w-full text-center shadow-sm">
-        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
+    <!-- Success screen -->
+    <div v-else-if="submitted" class="flex-1 flex items-center justify-center p-6">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 max-w-sm w-full text-center">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+          :style="{ background: primaryColor + '18' }">
+          <span class="material-icons text-3xl" :style="{ color: primaryColor }">check_circle</span>
         </div>
-        <h2 class="text-xl font-black text-slate-900 mb-2">Booking confirmed!</h2>
-        <p class="text-sm text-slate-500 mb-1"><strong>{{ form.full_name }}</strong></p>
-        <p class="text-sm text-slate-500 mb-1">{{ formatDate(form.appointment_date) }} {{ form.time_slot ? '@ ' + form.time_slot : '' }}</p>
-        <p v-if="form.service_name" class="text-xs text-slate-400 mb-4">{{ form.service_name }}</p>
-        <p class="text-xs text-slate-400">
-          We'll see you at <strong>{{ clinic.name }}</strong>. Please arrive a few minutes early.
-        </p>
+        <h2 class="text-2xl font-black text-slate-900 mb-1">All set!</h2>
+        <p class="text-sm text-slate-500 mb-4">Your appointment has been confirmed.</p>
+        <div class="bg-slate-50 border border-gray-200 rounded-xl px-4 py-4 text-left space-y-2.5 mb-6">
+          <div class="flex items-center gap-3">
+            <span class="material-icons text-slate-400 text-[18px]">person</span>
+            <span class="text-sm font-semibold text-slate-800">{{ form.full_name }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="material-icons text-slate-400 text-[18px]">event</span>
+            <span class="text-sm text-slate-700">{{ formatDate(form.appointment_date) }}</span>
+          </div>
+          <div v-if="form.time_slot" class="flex items-center gap-3">
+            <span class="material-icons text-slate-400 text-[18px]">schedule</span>
+            <span class="text-sm text-slate-700">{{ form.time_slot }}</span>
+          </div>
+          <div v-if="form.service_name" class="flex items-center gap-3">
+            <span class="material-icons text-slate-400 text-[18px]">medical_services</span>
+            <span class="text-sm text-slate-700">{{ form.service_name }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="material-icons text-slate-400 text-[18px]">store</span>
+            <span class="text-sm text-slate-700">{{ clinic.name }}</span>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mb-5">Please arrive a few minutes early. We look forward to seeing you!</p>
         <button @click="resetForm"
-          class="mt-6 w-full border border-gray-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors">
-          Book another
+          class="w-full border border-gray-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+          <span class="material-icons text-[16px]">add_circle_outline</span>
+          Book another appointment
         </button>
       </div>
     </div>
 
-    <!-- Booking form -->
-    <template v-else>
-      <!-- Header -->
-      <header class="bg-white border-b border-gray-100 px-4 py-4">
-        <div class="max-w-md mx-auto flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0"
-            :style="{ background: branding?.primary_color ?? '#0EA5E9' }">
-            {{ clinic.name.charAt(0) }}
+    <!-- =================== LAYOUT A: Classic (all plans) =================== -->
+    <template v-else-if="activeLayout === 'layout_a'">
+      <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
+        <div class="max-w-lg mx-auto px-4 py-3.5 flex items-center gap-3">
+          <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
+            class="w-10 h-10 rounded-xl object-contain border border-gray-100 bg-white p-0.5 shadow-sm" />
+          <div v-else class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-sm"
+            :style="{ background: primaryColor }">
+            {{ clinic.name.charAt(0).toUpperCase() }}
           </div>
           <div>
-            <h1 class="font-black text-slate-900 text-base leading-tight">{{ clinic.name }}</h1>
-            <p class="text-xs text-slate-400">Book an appointment</p>
+            <h1 class="font-black text-slate-900 text-sm leading-tight">{{ clinic.name }}</h1>
+            <p class="text-xs text-slate-400">Online Appointment Booking</p>
           </div>
         </div>
       </header>
 
-      <!-- Form -->
-      <main class="flex-1 px-4 py-6">
-        <div class="max-w-md mx-auto space-y-4">
-
-          <!-- Patient info -->
-          <div class="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-            <h2 class="text-sm font-bold text-slate-900">Your information</h2>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
-                Full Name <span class="text-red-400">*</span>
-              </label>
-              <input v-model="form.full_name" type="text" placeholder="Juan Dela Cruz"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
-                Contact Number <span class="text-red-400">*</span>
-              </label>
-              <input v-model="form.contact_number" type="tel" placeholder="09XXXXXXXXX"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-              <p class="text-xs text-slate-400 mt-1">No account needed. Just your number.</p>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Email Address</label>
-              <input v-model="form.email" type="email" placeholder="patient@email.com"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-              <p class="text-xs text-slate-400 mt-1">Optional — for booking confirmation.</p>
-            </div>
+      <!-- Progress indicator -->
+      <div class="bg-white border-b border-gray-100">
+        <div class="max-w-lg mx-auto px-4 py-2 flex items-center gap-1">
+          <div v-for="(step, i) in steps" :key="i"
+            :class="['flex items-center gap-1.5 text-xs font-semibold transition-colors',
+              i <= currentStep ? 'text-sky-600' : 'text-slate-300']">
+            <span :class="['w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border',
+              i < currentStep ? 'bg-sky-500 border-sky-500 text-white' :
+              i === currentStep ? 'border-sky-500 text-sky-500' : 'border-gray-200 text-slate-300']">
+              <span v-if="i < currentStep" class="material-icons text-[11px]">check</span>
+              <span v-else>{{ i + 1 }}</span>
+            </span>
+            <span class="hidden sm:inline">{{ step }}</span>
+            <span v-if="i < steps.length - 1" class="material-icons text-[14px] ml-1 text-slate-200">chevron_right</span>
           </div>
+        </div>
+      </div>
 
-          <!-- Service selection -->
-          <div class="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-            <h2 class="text-sm font-bold text-slate-900">What do you need?</h2>
-
-            <!-- Category grid -->
-            <div v-if="!selectedCategory" class="grid grid-cols-2 gap-2">
-              <button v-for="cat in SERVICE_CATEGORIES" :key="cat.id"
-                @click="selectedCategory = cat"
-                class="flex items-center gap-2 px-3 py-3 rounded-xl border border-gray-200 hover:border-opacity-80 text-left transition-all active:scale-95"
-                :style="{ '--hover-color': primaryColor }">
-                <span class="text-xl">{{ cat.icon }}</span>
-                <span class="text-xs font-semibold text-slate-700">{{ cat.label }}</span>
-              </button>
-            </div>
-
-            <!-- Services within category -->
-            <div v-else>
-              <button @click="selectedCategory = null; form.service_name = ''"
-                class="flex items-center gap-1 text-xs font-semibold mb-3 transition-colors"
-                :style="{ color: primaryColor }">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                </svg>
-                {{ selectedCategory.icon }} {{ selectedCategory.label }}
-              </button>
-              <div class="grid grid-cols-1 gap-1.5">
-                <button v-for="svc in selectedCategory.services" :key="svc"
-                  @click="form.service_name = svc"
-                  :class="[
-                    'text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all active:scale-95',
-                    form.service_name === svc ? 'text-white border-transparent' : 'bg-white border-gray-200 text-slate-700'
-                  ]"
-                  :style="form.service_name === svc ? { background: primaryColor } : {}">
-                  {{ svc }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Selected badge -->
-            <div v-if="form.service_name" class="flex items-center gap-2 rounded-lg px-3 py-2 border"
-              :style="{ background: primaryColor + '12', borderColor: primaryColor + '40' }">
-              <svg class="w-4 h-4 shrink-0" :style="{ color: primaryColor }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span class="text-xs font-semibold" :style="{ color: primaryColor }">{{ form.service_name }}</span>
-              <button @click="form.service_name = ''; selectedCategory = null" class="ml-auto text-slate-400 hover:text-slate-600 transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Schedule -->
-          <div class="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-            <h2 class="text-sm font-bold text-slate-900">Schedule</h2>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
-                Preferred Date <span class="text-red-400">*</span>
-              </label>
-              <input v-model="form.appointment_date" type="date" :min="today"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">Preferred Time</label>
-              <div class="grid grid-cols-3 gap-2">
-                <button v-for="slot in timeSlots" :key="slot" @click="form.time_slot = slot"
-                  :class="[
-                    'py-2.5 rounded-xl text-xs font-semibold border transition-all active:scale-95',
-                    form.time_slot === slot ? 'text-white border-transparent' : 'bg-white border-gray-200 text-slate-600'
-                  ]"
-                  :style="form.time_slot === slot ? { background: primaryColor } : {}">
-                  {{ slot }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Doctor — only shown for Pro/Premium clinics -->
-            <div v-if="showDoctorSelect && doctors.length > 0">
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Preferred Doctor</label>
-              <select v-model="form.doctor_id"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all">
-                <option value="">Any available doctor</option>
-                <option v-for="doc in doctors" :key="doc.id" :value="doc.id">{{ doc.full_name }}</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Additional Notes</label>
-              <textarea v-model="form.notes" rows="2" placeholder="Allergies, special concerns, or anything your clinic should know…"
-                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50 focus:bg-white transition-all resize-none">
-              </textarea>
-            </div>
-          </div>
-
-          <div v-if="errorMsg" class="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-            <svg class="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-xs text-red-600">{{ errorMsg }}</p>
-          </div>
-
-          <button @click="handleBooking" :disabled="saving || !canSubmit"
-            :style="{ background: canSubmit ? primaryColor : undefined }"
-            class="w-full disabled:bg-slate-200 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all text-sm active:scale-95">
-            {{ saving ? 'Confirming…' : 'Confirm Booking' }}
-          </button>
-
-          <p class="text-center text-xs text-slate-300">
+      <main class="flex-1 px-4 py-5">
+        <div class="max-w-lg mx-auto space-y-4">
+          <BookingForm
+            :form="form"
+            :primary-color="primaryColor"
+            :selected-category="selectedCategory"
+            :doctors="doctors"
+            :show-doctor-select="showDoctorSelect"
+            :time-slots="timeSlots"
+            :today="today"
+            :error-msg="errorMsg"
+            :saving="saving"
+            :can-submit="canSubmit"
+            :categories="SERVICE_CATEGORIES"
+            @update:selected-category="selectedCategory = $event"
+            @book="handleBooking"
+          />
+          <p class="text-center text-xs text-slate-300 pb-4">
             Powered by <span class="font-semibold text-slate-400">ClinicGo</span>
           </p>
         </div>
       </main>
     </template>
+
+    <!-- =================== LAYOUT B: Visual Cards (Pro+) =================== -->
+    <template v-else-if="activeLayout === 'layout_b'">
+      <header class="relative overflow-hidden"
+        :style="{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }">
+        <div class="absolute inset-0 opacity-10"
+          style="background-image: radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px); background-size: 30px 30px;"></div>
+        <div class="relative max-w-2xl mx-auto px-5 py-6 flex items-center gap-4">
+          <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
+            class="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow-lg shrink-0" />
+          <div v-else class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0">
+            {{ clinic!.name.charAt(0).toUpperCase() }}
+          </div>
+          <div>
+            <h1 class="text-lg font-black text-white leading-tight">{{ clinic!.name }}</h1>
+            <p class="text-sm text-white/70 mt-0.5">Book your appointment online</p>
+          </div>
+          <div class="ml-auto hidden sm:flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-xl px-3 py-1.5">
+            <span class="material-icons text-white text-[16px]">verified</span>
+            <span class="text-xs font-bold text-white">Instant Booking</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
+        <div class="max-w-2xl mx-auto px-4">
+          <div class="flex">
+            <div v-for="(step, i) in steps" :key="i"
+              class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold border-b-2 transition-all"
+              :class="i < currentStep ? 'text-green-500 border-transparent' : i > currentStep ? 'text-slate-300 border-transparent' : ''"
+              :style="i === currentStep ? { color: primaryColor, borderBottomColor: primaryColor } : {}">
+              <span :class="['w-5 h-5 rounded-full flex items-center justify-center text-[10px]',
+                i < currentStep ? 'bg-green-500 text-white' : i > currentStep ? 'bg-gray-100 text-slate-400' : 'text-white']"
+                :style="i === currentStep ? { background: primaryColor } : {}">
+                <span v-if="i < currentStep" class="material-icons text-[11px]">check</span>
+                <span v-else>{{ i + 1 }}</span>
+              </span>
+              {{ step }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <main class="flex-1 px-4 py-6">
+        <div class="max-w-2xl mx-auto space-y-4">
+          <BookingForm
+            :form="form"
+            :primary-color="primaryColor"
+            :selected-category="selectedCategory"
+            :doctors="doctors"
+            :show-doctor-select="showDoctorSelect"
+            :time-slots="timeSlots"
+            :today="today"
+            :error-msg="errorMsg"
+            :saving="saving"
+            :can-submit="canSubmit"
+            :categories="SERVICE_CATEGORIES"
+            @update:selected-category="selectedCategory = $event"
+            @book="handleBooking"
+          />
+          <p class="text-center text-xs text-slate-300 pb-4">Powered by <span class="font-semibold text-slate-400">ClinicGo</span></p>
+        </div>
+      </main>
+    </template>
+
+    <!-- =================== LAYOUT C: Clinic Showcase (Pro+) =================== -->
+    <template v-else-if="activeLayout === 'layout_c'">
+      <div class="min-h-screen flex flex-col lg:flex-row">
+        <!-- Left panel -->
+        <aside class="lg:w-80 xl:w-96 shrink-0 flex flex-col"
+          :style="{ background: `linear-gradient(160deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }">
+          <div class="p-6 flex flex-col gap-5 lg:sticky lg:top-0 lg:min-h-screen">
+            <div class="flex items-center gap-3">
+              <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
+                class="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow-lg" />
+              <div v-else class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-2xl">
+                {{ clinic!.name.charAt(0) }}
+              </div>
+              <div>
+                <h1 class="text-base font-black text-white">{{ clinic!.name }}</h1>
+                <p class="text-xs text-white/60">Clinic</p>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
+                <span class="material-icons text-white/70 text-[18px]">location_on</span>
+                <div>
+                  <p class="text-xs font-bold text-white">Location</p>
+                  <p class="text-xs text-white/60">Philippines</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
+                <span class="material-icons text-white/70 text-[18px]">mail_outline</span>
+                <div>
+                  <p class="text-xs font-bold text-white">Email</p>
+                  <p class="text-xs text-white/60">{{ clinic!.email ?? 'Not provided' }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
+                <span class="material-icons text-white/70 text-[18px]">schedule</span>
+                <div>
+                  <p class="text-xs font-bold text-white">Operating Hours</p>
+                  <p class="text-xs text-white/60">8:00 AM – 5:00 PM</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex-1 min-h-36 rounded-2xl overflow-hidden border border-white/20 bg-white/10 relative">
+              <iframe
+                :src="`https://maps.google.com/maps?q=${encodeURIComponent(clinic!.name + ' Philippines')}&output=embed&z=14`"
+                class="w-full h-full absolute inset-0 opacity-90"
+                frameborder="0" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                title="Clinic location map">
+              </iframe>
+              <div class="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center gap-1 shadow">
+                <span class="material-icons text-red-500 text-[14px]">place</span>
+                <span class="text-[11px] font-bold text-slate-700">{{ clinic!.name }}</span>
+              </div>
+            </div>
+            <p class="text-xs text-white/30 text-center">Powered by ClinicGo</p>
+          </div>
+        </aside>
+
+        <!-- Right panel: booking form -->
+        <main class="flex-1 bg-white px-4 py-6 lg:px-8 lg:py-8 overflow-y-auto">
+          <div class="max-w-lg mx-auto space-y-4">
+            <div class="mb-2">
+              <h2 class="text-xl font-black text-slate-900">Book an Appointment</h2>
+              <p class="text-sm text-slate-400 mt-0.5">Fill out the form and we'll confirm your slot.</p>
+            </div>
+            <BookingForm
+              :form="form"
+              :primary-color="primaryColor"
+              :selected-category="selectedCategory"
+              :doctors="doctors"
+              :show-doctor-select="showDoctorSelect"
+              :time-slots="timeSlots"
+              :today="today"
+              :error-msg="errorMsg"
+              :saving="saving"
+              :can-submit="canSubmit"
+              :categories="SERVICE_CATEGORIES"
+              @update:selected-category="selectedCategory = $event"
+              @book="handleBooking"
+            />
+          </div>
+        </main>
+      </div>
+    </template>
+
+    <!-- =================== LAYOUT D: Custom / Premium =================== -->
+    <template v-else-if="activeLayout === 'layout_d'">
+      <div class="flex-1 flex items-center justify-center p-8 text-center">
+        <div class="max-w-sm">
+          <div class="w-20 h-20 rounded-3xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-black shadow-lg"
+            :style="{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }">✦</div>
+          <h1 class="text-xl font-black text-slate-900 mb-2">Custom Layout</h1>
+          <p class="text-sm text-slate-500">Your custom booking page is being built by the ClinicGo team. In the meantime, patients can still book using the classic layout.</p>
+          <button @click="branding!.layout = 'layout_a'"
+            class="mt-4 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow"
+            :style="{ background: primaryColor }">Use Classic Layout</button>
+        </div>
+      </div>
+    </template>
+
   </div>
 </template>
 
@@ -213,6 +293,7 @@ import { patientService } from '@/services/patient.service'
 import { appointmentService } from '@/services/appointment.service'
 import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, ServiceCategory } from '@/types'
 import { SERVICE_CATEGORIES } from '@/types'
+import BookingForm from './BookingForm.vue'
 
 const route = useRoute()
 const slug = route.params.slug as string
@@ -231,6 +312,13 @@ const isTrialActive = ref(false)
 
 const selectedCategory = ref<ServiceCategory | null>(null)
 
+const steps = ['Your Info', 'Service', 'Schedule']
+const currentStep = computed(() => {
+  if (!form.value.full_name || !form.value.contact_number) return 0
+  if (!form.value.service_name) return 1
+  return 2
+})
+
 const today = new Date().toISOString().split('T')[0]
 const form = ref({
   full_name: '',
@@ -244,32 +332,42 @@ const form = ref({
   notes: '',
 })
 
-const timeSlots = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','1:00 PM','2:00 PM','3:00 PM','4:00 PM']
+const timeSlots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM']
 
 const primaryColor = computed(() => branding.value?.primary_color ?? '#0EA5E9')
+const secondaryColor = computed(() => branding.value?.secondary_color ?? '#0369A1')
 
-// Doctor selection only for Pro/Premium plans (or active trial)
-const showDoctorSelect = computed(() => {
-  const effectivePlan = isTrialActive.value ? 'premium' : clinicPlan.value
-  return (effectivePlan === 'pro' || effectivePlan === 'premium') &&
-    settings.value?.booking_mode !== 'auto_assign'
+const effectivePlan = computed((): ClinicPlan => {
+  if (!clinic.value) return 'starter'
+  return isTrialActive.value ? 'premium' : clinicPlan.value
 })
 
+const activeLayout = computed(() => {
+  const layout = branding.value?.layout ?? 'layout_a'
+  const plan = effectivePlan.value
+  if (layout === 'layout_d' && plan !== 'premium') return 'layout_a'
+  if ((layout === 'layout_b' || layout === 'layout_c') && plan === 'starter') return 'layout_a'
+  return layout
+})
+
+const showDoctorSelect = computed(() =>
+  (effectivePlan.value === 'pro' || effectivePlan.value === 'premium') &&
+  settings.value?.booking_mode !== 'auto_assign'
+)
+
 const canSubmit = computed(() =>
-  form.value.full_name.trim() &&
-  form.value.contact_number.trim() &&
-  form.value.appointment_date
+  Boolean(form.value.full_name.trim() && form.value.contact_number.trim() && form.value.appointment_date)
 )
 
 const brandStyle = computed(() => ({
   background: primaryColor.value
-    ? `linear-gradient(135deg, ${primaryColor.value}08 0%, #ffffff 60%)`
+    ? `linear-gradient(150deg, ${primaryColor.value}10 0%, #f8fafc 50%)`
     : '#f8fafc',
 }))
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-PH', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   })
 }
 
@@ -293,11 +391,15 @@ async function handleBooking() {
   saving.value = true
   errorMsg.value = ''
 
-  const { data: patient, error: patientError } = await patientService.findOrCreate(clinic.value.id, {
-    full_name: form.value.full_name,
-    contact_number: form.value.contact_number,
-    email: form.value.email.trim() || undefined,
-  }, { plan: getEffectivePlan(clinic.value) })
+  const { data: patient, error: patientError } = await patientService.findOrCreate(
+    clinic.value.id,
+    {
+      full_name: form.value.full_name,
+      contact_number: form.value.contact_number,
+      email: form.value.email.trim() || undefined,
+    },
+    { plan: getEffectivePlan(clinic.value) }
+  )
 
   if (patientError || !patient) {
     errorMsg.value = patientError ?? 'Could not register patient'
@@ -317,12 +419,7 @@ async function handleBooking() {
   })
 
   saving.value = false
-
-  if (apptError) {
-    errorMsg.value = apptError
-    return
-  }
-
+  if (apptError) { errorMsg.value = apptError; return }
   submitted.value = true
 }
 
@@ -335,7 +432,6 @@ onMounted(async () => {
     clinicPlan.value = data.plan
     isTrialActive.value = !!(data.is_trial && data.trial_ends_at && new Date(data.trial_ends_at) > new Date())
 
-    // Only fetch doctors for Pro/Premium clinics
     const ep = getEffectivePlan(data)
     if ((ep === 'pro' || ep === 'premium') && settings.value?.booking_mode !== 'auto_assign') {
       doctors.value = await appointmentService.getDoctors(data.id)

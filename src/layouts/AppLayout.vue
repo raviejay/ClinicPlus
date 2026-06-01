@@ -52,7 +52,7 @@
             <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
             <span :class="['text-xs font-bold', planColor]">{{ planLabel }}</span>
           </div>
-          <RouterLink to="/admin/settings" class="mt-2 block text-center text-[11px] font-bold text-white bg-sky-500 hover:bg-sky-600 rounded-lg py-1.5 transition-colors">Upgrade Now ✦</RouterLink>
+          <RouterLink to="/admin/billing" class="mt-2 block text-center text-[11px] font-bold text-white bg-sky-500 hover:bg-sky-600 rounded-lg py-1.5 transition-colors">Upgrade Now ✦</RouterLink>
         </div>
         <div v-else class="flex justify-center">
           <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse" :title="planLabel"></span>

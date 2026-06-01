@@ -45,51 +45,84 @@
         <!-- Revenue Overview -->
         <div class="lg:col-span-7">
           <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+
+            <!-- Top header row -->
             <div class="flex items-center justify-between mb-5">
-              <div>
-                <h2 class="text-lg font-bold text-slate-800">Revenue Overview</h2>
-                <p class="text-xs text-slate-400">Today's income & 7-day trend</p>
+              <div class="flex items-center gap-2">
+                <span class="material-icons text-amber-400 text-lg">monetization_on</span>
+                <h2 class="text-sm font-bold text-slate-700">Revenue</h2>
               </div>
-              <RouterLink to="/revenue" class="text-xs font-semibold text-sky-500 hover:text-sky-600 flex items-center gap-0.5">
-                Full Report <span class="material-icons text-sm">chevron_right</span>
-              </RouterLink>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-5 mb-5">
-              <div class="lg:col-span-1">
-                <div class="bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl p-4 h-full flex flex-col justify-center">
-                  <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Today's Total</p>
-                  <p class="text-2xl font-black text-slate-900">₱{{ stats.todayRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</p>
-                  <p class="text-xs text-slate-500 mt-1">{{ stats.todayPaymentCount }} transaction{{ stats.todayPaymentCount !== 1 ? 's' : '' }}</p>
+              <div class="flex items-center gap-3">
+                <!-- Period toggle -->
+                <div class="flex bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
+                  <button v-for="p in ['7D','30D','90D','1Y']" :key="p"
+                    @click="chartPeriod = p; reloadChart()"
+                    :class="['px-2.5 py-1 rounded-md transition-all', chartPeriod === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600']">
+                    {{ p }}
+                  </button>
                 </div>
-              </div>
-              <div class="lg:col-span-3 h-36">
-                <canvas ref="revenueChartCanvas" style="height:144px"></canvas>
+                <RouterLink to="/revenue" class="text-xs font-semibold text-sky-500 hover:text-sky-600 flex items-center gap-0.5">
+                  Full Report <span class="material-icons text-sm">chevron_right</span>
+                </RouterLink>
               </div>
             </div>
 
-            <div class="pt-4 border-t border-gray-100">
-              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Payment Methods</p>
-              <div v-if="paymentMethods.length === 0" class="text-xs text-slate-400 text-center py-3">
-                No payments recorded today
-              </div>
-              <div v-else class="space-y-2.5">
-                <div v-for="method in paymentMethods" :key="method.label" class="space-y-1">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <div :class="['w-2 h-2 rounded-full', method.dot]"></div>
-                      <span class="text-xs font-medium text-slate-700">{{ method.label }}</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <span class="text-xs text-slate-500">₱{{ method.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</span>
-                      <span class="text-xs font-bold text-slate-800 w-8 text-right">{{ method.pct }}%</span>
-                    </div>
+            <!-- Two-column body: left stat panel + right chart -->
+            <div class="flex gap-5">
+
+              <!-- Left stat panel -->
+              <div class="w-40 shrink-0 flex flex-col gap-3">
+                <!-- Total revenue -->
+                <div>
+                  <p class="text-2xl font-black text-slate-900 leading-none">
+                    ₱{{ periodRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}
+                  </p>
+                  <div class="flex items-center gap-1 mt-1.5">
+                    <span class="material-icons text-green-500 text-sm leading-none">arrow_upward</span>
+                    <span class="text-sm font-bold text-green-500">{{ revenueChangePct }}%</span>
                   </div>
-                  <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div :class="['h-full rounded-full transition-all duration-700', method.bar]" :style="{ width: method.pct + '%' }"></div>
+                  <p class="text-xs text-slate-400 mt-0.5">{{ periodLabel }}</p>
+                </div>
+
+                <!-- Best Day card -->
+                <div class="bg-slate-50 border border-gray-100 rounded-xl p-3 flex items-center gap-2.5 mt-1">
+                  <span class="material-icons text-amber-400 text-2xl shrink-0">emoji_events</span>
+                  <div>
+                    <p class="text-[10px] text-slate-400 font-medium">Best Day</p>
+                    <p class="text-xs font-bold text-slate-700 leading-tight">{{ bestDay.label }}</p>
+                    <p class="text-xs font-black text-slate-900">₱{{ bestDay.amount.toLocaleString('en-PH') }}</p>
+                  </div>
+                </div>
+
+                <!-- Payment Methods -->
+                <div class="pt-3 border-t border-gray-100">
+                  <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Payment Methods</p>
+                  <div v-if="paymentMethods.length === 0" class="text-xs text-slate-400 py-2">No payments today</div>
+                  <div v-else class="space-y-2">
+                    <div v-for="method in paymentMethods" :key="method.label" class="space-y-1">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                          <div :class="['w-1.5 h-1.5 rounded-full', method.dot]"></div>
+                          <span class="text-[11px] font-medium text-slate-700">{{ method.label }}</span>
+                        </div>
+                        <span class="text-[11px] font-bold text-slate-800">{{ method.pct }}%</span>
+                      </div>
+                      <div class="h-1 bg-gray-100 rounded-full overflow-hidden">
+                        <div :class="['h-full rounded-full transition-all duration-700', method.bar]" :style="{ width: method.pct + '%' }"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Right chart area -->
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] text-slate-400 mb-1 font-medium">Revenue Amount (₱)</p>
+                <div class="relative h-64">
+                  <canvas ref="revenueChartCanvas"></canvas>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -238,6 +271,212 @@ const todayAppointments = ref<Appointment[]>([])
 const loadingAppts = ref(true)
 const revenueChartCanvas = ref<HTMLCanvasElement | null>(null)
 let revenueChart: Chart | null = null
+const chartPeriod = ref<'7D' | '30D' | '90D' | '1Y'>('30D')
+
+// Cached daily revenue data (last 365 days) — reactive so computed deps update
+const cachedDailyData = ref<{ date: string; total: number }[]>([])
+
+// ── Derived stats ──────────────────────────────────────────────
+
+const periodDays = computed(() => {
+  if (chartPeriod.value === '7D') return 7
+  if (chartPeriod.value === '30D') return 30
+  if (chartPeriod.value === '90D') return 90
+  return 365
+})
+
+const periodLabel = computed(() => {
+  if (chartPeriod.value === '7D') return 'vs previous 7 days'
+  if (chartPeriod.value === '30D') return 'vs last 30 days'
+  if (chartPeriod.value === '90D') return 'vs previous 90 days'
+  return 'vs previous year'
+})
+
+const periodSlice = computed(() => cachedDailyData.value.slice(-periodDays.value))
+const prevSlice   = computed(() => cachedDailyData.value.slice(-periodDays.value * 2, -periodDays.value))
+
+// periodRevenue is now fully derived — no manual sync needed
+const periodRevenue = computed(() => periodSlice.value.reduce((s, d) => s + d.total, 0))
+
+const revenueChangePct = computed(() => {
+  const cur  = periodSlice.value.reduce((s, d) => s + d.total, 0)
+  const prev = prevSlice.value.reduce((s, d) => s + d.total, 0)
+  if (!prev) return '0.0'
+  return (((cur - prev) / prev) * 100).toFixed(1)
+})
+
+const bestDay = computed(() => {
+  const slice = periodSlice.value
+  if (!slice.length) return { label: '—', amount: 0 }
+  const top = slice.reduce((a, b) => b.total > a.total ? b : a)
+  const d = new Date(top.date)
+  const label = d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  return { label, amount: top.total }
+})
+
+// ── Chart helpers ──────────────────────────────────────────────
+
+function getChartDataForPeriod(period: '7D' | '30D' | '90D' | '1Y') {
+  if (period === '1Y') {
+    // Aggregate by month
+    const months: Record<string, number> = {}
+    cachedDailyData.value.forEach(d => {
+      const key = d.date.slice(0, 7) // "YYYY-MM"
+      months[key] = (months[key] ?? 0) + d.total
+    })
+    const sorted = Object.entries(months).sort(([a], [b]) => a.localeCompare(b)).slice(-12)
+    return {
+      labels: sorted.map(([k]) => {
+        const [y, m] = k.split('-')
+        return new Date(+y, +m - 1).toLocaleDateString('en-PH', { month: 'short' })
+      }),
+      data: sorted.map(([, v]) => v),
+    }
+  }
+
+  const days = period === '7D' ? 7 : period === '30D' ? 30 : 90
+  const slice = cachedDailyData.value.slice(-days)
+
+  if (period === '7D') {
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    return {
+      labels: slice.map(d => dayNames[new Date(d.date).getDay()]),
+      data:   slice.map(d => d.total),
+    }
+  }
+
+  return {
+    labels: slice.map((d, i) => String(i + 1)),
+    data:   slice.map(d => d.total),
+  }
+}
+
+function reloadChart() {
+  const { labels, data } = getChartDataForPeriod(chartPeriod.value)
+  initChart(labels, data, chartPeriod.value)
+}
+
+function initChart(labels: string[], data: number[], period: '7D' | '30D' | '90D' | '1Y') {
+  if (!revenueChartCanvas.value) return
+  if (revenueChart) revenueChart.destroy()
+  const ctx = revenueChartCanvas.value.getContext('2d')
+  if (!ctx) return
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220)
+  gradient.addColorStop(0, 'rgba(251,191,36,0.30)')
+  gradient.addColorStop(1, 'rgba(251,191,36,0.00)')
+
+  const maxVal = Math.max(...data)
+  const maxIdx = data.indexOf(maxVal)
+
+  const peakLabelPlugin = {
+    id: 'peakLabel',
+    afterDatasetsDraw(chart: Chart) {
+      const meta = chart.getDatasetMeta(0)
+      const pt   = meta.data[maxIdx]
+      if (!pt) return
+      const { x, y } = pt
+      const c = chart.ctx
+      const valText = `₱${Math.round(maxVal).toLocaleString('en-PH')}`
+      const dayText = labels[maxIdx]
+      const boxW = 82, boxH = 36, r = 6
+      let bx = x - boxW / 2
+      let by = y - boxH - 14
+      if (bx < 4) bx = 4
+      if (bx + boxW > chart.width - 4) bx = chart.width - boxW - 4
+      if (by < 4) by = y + 14
+      c.save()
+      c.fillStyle = '#fff'
+      c.strokeStyle = 'rgba(0,0,0,0.10)'
+      c.lineWidth = 1
+      c.beginPath()
+      c.roundRect(bx, by, boxW, boxH, r)
+      c.fill(); c.stroke()
+      c.font = '10px system-ui, sans-serif'
+      c.fillStyle = '#94a3b8'
+      c.textAlign = 'center'
+      c.fillText(dayText, bx + boxW / 2, by + 13)
+      c.font = '600 12px system-ui, sans-serif'
+      c.fillStyle = '#0f172a'
+      c.fillText(valText, bx + boxW / 2, by + 28)
+      c.restore()
+    },
+  }
+
+  revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Revenue (₱)',
+        data,
+        borderColor: 'rgb(251,191,36)',
+        backgroundColor: gradient,
+        borderWidth: 2.5,
+        tension: 0.4,
+        fill: true,
+        pointRadius: data.map((_, i) => i === maxIdx ? 6 : 0),
+        pointBackgroundColor: 'rgb(251,191,36)',
+        pointBorderColor: 'white',
+        pointBorderWidth: 2,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgb(251,191,36)',
+        pointHoverBorderColor: 'white',
+        pointHoverBorderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 30, right: 10 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => `  ₱${(c.parsed.y ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
+            title: (items) => `  ${items[0].label}`,
+          },
+          backgroundColor: '#0f172a',
+          titleColor: '#94a3b8',
+          bodyColor: '#f1f5f9',
+          bodyFont: { weight: 'bold', size: 13 },
+          padding: 12,
+          cornerRadius: 10,
+          displayColors: false,
+          caretSize: 6,
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (v) => `₱${Number(v) >= 1000 ? (Number(v) / 1000).toFixed(0) + 'k' : v}`,
+            font: { size: 10 },
+            color: '#94a3b8',
+            maxTicksLimit: 5,
+          },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          border: { display: false },
+        },
+        x: {
+          ticks: {
+            font: { size: 10 },
+            color: '#94a3b8',
+            maxTicksLimit: period === '90D' ? 9 : period === '1Y' ? 12 : 10,
+            autoSkip: true,
+            maxRotation: 0,
+          },
+          grid: { display: false },
+          border: { display: false },
+        },
+      },
+      interaction: { intersect: false, mode: 'index' },
+    },
+    plugins: [peakLabelPlugin],
+  })
+}
+
+// ── Other computed ─────────────────────────────────────────────
 
 const timeOfDay = computed(() => {
   const h = new Date().getHours()
@@ -287,17 +526,15 @@ const clinicInfo = computed(() => [
   { label: 'Booking mode', value: authStore.clinicSettings?.booking_mode?.replace(/_/g, ' ') ?? '—' },
   { label: 'Queue',        value: authStore.clinicSettings?.queue_enabled ? '● Enabled' : '○ Disabled',
     color: authStore.clinicSettings?.queue_enabled ? 'text-green-600' : 'text-slate-400' },
-  { label: 'SMS',          value: authStore.clinicSettings?.sms_enabled ? '● Enabled' : '○ Disabled',
-    color: authStore.clinicSettings?.sms_enabled ? 'text-green-600' : 'text-slate-400' },
 ])
 
 const quickActions = [
-  { to: '/appointments/new',   icon: 'event_available', label: 'New Appointment', desc: 'Schedule a visit',    bg: 'bg-sky-50',    iconColor: 'text-sky-500' },
-  { to: '/patients/new',       icon: 'person_add',      label: 'Add Walk-in',    desc: 'Register patient',    bg: 'bg-green-50',  iconColor: 'text-green-500' },
-  { to: '/queue',              icon: 'play_circle',     label: 'Start Queue',    desc: "Today's flow",        bg: 'bg-amber-50',  iconColor: 'text-amber-500' },
-  { to: '/revenue/record',     icon: 'point_of_sale',   label: 'Record Payment', desc: 'Log transaction',     bg: 'bg-purple-50', iconColor: 'text-purple-500' },
-  { to: '/medical-records/new',icon: 'note_add',        label: 'Add Record',     desc: 'Add consultation',    bg: 'bg-rose-50',   iconColor: 'text-rose-500' },
-  { to: '/revenue',            icon: 'bar_chart',       label: 'View Revenue',   desc: 'Analytics',           bg: 'bg-indigo-50', iconColor: 'text-indigo-500' },
+  { to: '/appointments/new',    icon: 'event_available', label: 'New Appointment', desc: 'Schedule a visit',  bg: 'bg-sky-50',    iconColor: 'text-sky-500' },
+  { to: '/patients/new',        icon: 'person_add',      label: 'Add Walk-in',    desc: 'Register patient',  bg: 'bg-green-50',  iconColor: 'text-green-500' },
+  { to: '/queue',               icon: 'play_circle',     label: 'Start Queue',    desc: "Today's flow",      bg: 'bg-amber-50',  iconColor: 'text-amber-500' },
+  { to: '/revenue/record',      icon: 'point_of_sale',   label: 'Record Payment', desc: 'Log transaction',   bg: 'bg-purple-50', iconColor: 'text-purple-500' },
+  { to: '/medical-records/new', icon: 'note_add',        label: 'Add Record',     desc: 'Add consultation',  bg: 'bg-rose-50',   iconColor: 'text-rose-500' },
+  { to: '/revenue',             icon: 'bar_chart',       label: 'View Revenue',   desc: 'Analytics',         bg: 'bg-indigo-50', iconColor: 'text-indigo-500' },
 ]
 
 const planFeatures = [
@@ -310,56 +547,7 @@ const planFeatures = [
   { key: 'priority_support',    label: 'Priority support' },
 ]
 
-function initChart(weeklyData: number[]) {
-  if (!revenueChartCanvas.value) return
-  if (revenueChart) revenueChart.destroy()
-  const ctx = revenueChartCanvas.value.getContext('2d')
-  if (!ctx) return
-
-  revenueChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: (() => {
-        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-        return Array.from({ length: 7 }, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - (6 - i))
-          return days[d.getDay()]
-        })
-      })(),
-      datasets: [{
-        label: 'Revenue (₱)',
-        data: weeklyData,
-        borderColor: 'rgb(14,165,233)',
-        backgroundColor: 'rgba(14,165,233,0.08)',
-        borderWidth: 2.5,
-        tension: 0.4,
-        fill: true,
-        pointRadius: 3,
-        pointBackgroundColor: 'rgb(14,165,233)',
-        pointBorderColor: 'white',
-        pointBorderWidth: 2,
-        pointHoverRadius: 5,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: (c) => `₱${(c.parsed.y ?? 0).toLocaleString()}` },
-          backgroundColor: '#1e293b', titleColor: '#f1f5f9', bodyColor: '#cbd5e1',
-          padding: 10, cornerRadius: 8,
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { callback: (v) => `₱${Number(v)/1000}k`, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
-        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
-      },
-      interaction: { intersect: false, mode: 'index' }
-    }
-  })
-}
+// ── Data loading ───────────────────────────────────────────────
 
 async function loadStats() {
   if (!authStore.clinic?.id) return
@@ -374,24 +562,28 @@ async function loadStats() {
     appointmentService.getToday(clinicId),
   ])
 
-  stats.value.patients = patientCount
+  stats.value.patients          = patientCount
   stats.value.todayAppointments = apptCount
-  stats.value.queueToday = queueCount
-  stats.value.todayRevenue = revSummary.total
+  stats.value.queueToday        = queueCount
+  stats.value.todayRevenue      = revSummary.total
   stats.value.todayPaymentCount = revSummary.count
-  stats.value.byMethod = revSummary.byMethod
-  todayAppointments.value = (apptList.data as any) ?? []
-  loadingAppts.value = false
+  stats.value.byMethod          = revSummary.byMethod
+  todayAppointments.value       = (apptList.data as any) ?? []
+  loadingAppts.value            = false
 
-  // Build real 7-day revenue
-  const weeklyData: number[] = []
-  for (let i = 6; i >= 0; i--) {
+  // Fetch last 365 days in parallel so all period views are available instantly
+  const days365 = Array.from({ length: 365 }, (_, i) => {
     const d = new Date()
-    d.setDate(d.getDate() - i)
-    const s = await paymentService.getSummary(clinicId, d.toISOString().split('T')[0])
-    weeklyData.push(s.total)
-  }
-  setTimeout(() => initChart(weeklyData), 100)
+    d.setDate(d.getDate() - (364 - i))
+    return d.toISOString().split('T')[0]
+  })
+
+  const results = await Promise.all(days365.map(date => paymentService.getSummary(clinicId, date)))
+  cachedDailyData.value = days365.map((date, i) => ({ date, total: results[i].total }))
+
+  // periodRevenue is now computed reactively — just render chart
+  const { labels, data } = getChartDataForPeriod(chartPeriod.value)
+  setTimeout(() => initChart(labels, data, chartPeriod.value), 100)
 }
 
 onMounted(() => {
