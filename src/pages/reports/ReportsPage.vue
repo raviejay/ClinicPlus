@@ -214,23 +214,11 @@
         </div>
       </div>
     </Teleport>
-
-    <!-- Print styles injected into head -->
-    <Teleport to="head">
-      <style>
-        @media print {
-          body > *:not(#print-root) { display: none !important; }
-          #print-root { display: block !important; }
-          #printable-doc { font-size: 12pt; line-height: 1.6; }
-        }
-      </style>
-    </Teleport>
-
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { patientService } from '@/services/patient.service'
@@ -510,7 +498,7 @@ function printDocument() {
       <title>Document</title>
       <style>
         body { margin: 0; padding: 24px; font-family: Georgia, serif; }
-        @media print { body { padding: 0; } }
+        @media print { body { padding: 0; margin: 0; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
       </style>
     </head>
     <body>
@@ -539,6 +527,14 @@ function handleClickOutside(e: MouseEvent) {
   if (!target.closest('.relative')) showPatientDropdown.value = false
 }
 onMounted(() => document.addEventListener('click', handleClickOutside))
-import { onUnmounted } from 'vue'
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
+
+<!-- Move styles to a global or component-specific style block -->
+<style scoped>
+@media print {
+  body > *:not(#print-root) { display: none !important; }
+  #print-root { display: block !important; }
+  #printable-doc { font-size: 12pt; line-height: 1.6; }
+}
+</style>

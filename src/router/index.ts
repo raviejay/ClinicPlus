@@ -25,6 +25,8 @@ const router = createRouter({
     // Queue
     { path: '/queue', name: 'queue', component: () => import('@/pages/queue/QueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     { path: '/queue/doctor', name: 'doctor-queue', component: () => import('@/pages/queue/DoctorQueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
+    //reports
+    { path: '/reports', name: 'reports', component: () => import('@/pages/reports/ReportsPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Admin only
     { path: '/admin/overview', name: 'admin-overview', component: () => import('@/pages/admin/SuperAdminDashboard.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
     { path: '/admin/super-admin', name: 'super-admin', component: () => import('@/pages/admin/SuperAdminPage.vue'), meta: { requiresAuth: true, requiresSuperAdmin: true } },
