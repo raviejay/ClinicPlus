@@ -291,7 +291,7 @@ import { ref, computed, onMounted } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { clinicService } from '@/services/clinic.service'
-import type { ClinicBranding, ClinicLayout } from '@/types'
+import type { ClinicBranding } from '@/types'
 
 const auth = useAuthStore()
 const clinic = computed(() => auth.clinic)

@@ -12,7 +12,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           v-for="type in reportTypes" :key="type.id"
-          @click="selectReportType(type.id)"
+          @click="selectReportType(type.id as 'prescription' | 'medcert')"
           :class="[
             'flex items-start gap-4 p-5 rounded-2xl border-2 transition-all text-left',
             activeType === type.id

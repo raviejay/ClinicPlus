@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { medicalRecordService, type MedicalRecordWithDetails } from '@/services/medical-record.service'

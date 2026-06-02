@@ -56,7 +56,7 @@
                 <!-- Period toggle -->
                 <div class="flex bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
                   <button v-for="p in ['7D','30D','90D','1Y']" :key="p"
-                    @click="chartPeriod = p; reloadChart()"
+                    @click="chartPeriod = (p as '7D' | '30D' | '90D' | '1Y'); reloadChart()"
                     :class="['px-2.5 py-1 rounded-md transition-all', chartPeriod === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600']">
                     {{ p }}
                   </button>
@@ -346,7 +346,7 @@ function getChartDataForPeriod(period: '7D' | '30D' | '90D' | '1Y') {
   }
 
   return {
-    labels: slice.map((d, i) => String(i + 1)),
+    labels: slice.map((_d, i) => String(i + 1)),
     data:   slice.map(d => d.total),
   }
 }
