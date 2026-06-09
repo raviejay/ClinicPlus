@@ -17,6 +17,13 @@
             <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
             <span class="text-xs font-semibold text-green-700">Live</span>
           </div>
+          <RouterLink :to="{ name: 'queue-tv-display' }"
+            class="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-purple-200">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20m0 0l-.75 3M9 20h.008v.008H9V20zm5.25-17L15 4m0 0l.75-3M15 4h-.008V4.008H15V4zm5.25 17L21 20m0 0l.75 3M21 20h-.008v.008H21V20zm-9-2h.008v.008H12v-.008z"/>
+            </svg>
+            TV Display
+          </RouterLink>
           <button @click="showAddModal = true"
             class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">

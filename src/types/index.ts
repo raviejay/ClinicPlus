@@ -32,11 +32,14 @@ export type AppointmentStatus =
 export type AppointmentDisplayStatus = AppointmentStatus | 'arrived' | 'checked_in' | 'consulting'
 
 // Service categories — broad enough for any clinic type
+// AFTER
 export interface ServiceCategory {
   id: string
   label: string
   icon: string
   services: string[]
+  subtitle?: string   // ← add this
+  bgColor?: string    // ← add this
 }
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
