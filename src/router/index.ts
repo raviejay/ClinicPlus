@@ -24,6 +24,7 @@ const router = createRouter({
     { path: '/appointments/new', name: 'appointments-new', component: () => import('@/pages/appointments/NewAppointmentPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     // Queue
     { path: '/queue', name: 'queue', component: () => import('@/pages/queue/QueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
+    { path: '/queue/tv', name: 'queue-tv', component: () => import('@/pages/queue/QueueTVDisplay.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     { path: '/queue/doctor', name: 'doctor-queue', component: () => import('@/pages/queue/DoctorQueuePage.vue'), meta: { requiresAuth: true, requiresClinic: true } },
     //reports
     { path: '/reports', name: 'reports', component: () => import('@/pages/reports/ReportsPage.vue'), meta: { requiresAuth: true, requiresClinic: true } },

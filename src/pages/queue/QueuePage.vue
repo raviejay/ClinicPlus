@@ -17,6 +17,16 @@
             <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
             <span class="text-xs font-semibold text-green-700">Live</span>
           </div>
+
+          <!-- TV Display button -->
+          <button @click="openTVDisplay"
+            class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold px-3 py-2 rounded-xl transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            TV Display
+          </button>
+
           <button @click="showAddModal = true"
             class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -193,22 +203,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useBranchFilter } from '@/composables/useBranchFilter'
-import { queueService, type QueueWithPatient } from '@/services/queue.service'
+import { useQueueRealtime } from '@/composables/useQueueRealtime'
+import { queueService } from '@/services/queue.service'
 import { patientService } from '@/services/patient.service'
+import { useBranchFilter } from '@/composables/useBranchFilter'
 import AppLayout from '@/layouts/AppLayout.vue'
 import FeatureGate from '@/components/ui/FeatureGate.vue'
 import PatientLookup from '@/components/ui/PatientLookup.vue'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Patient } from '@/types'
+import type { QueueWithPatient } from '@/services/queue.service'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const { watchBranchChange } = useBranchFilter()
 
-const queue = ref<QueueWithPatient[]>([])
-const loading = ref(true)
 const calling = ref(false)
 const showAddModal = ref(false)
 const addingToQueue = ref(false)
@@ -216,9 +227,16 @@ const addError = ref('')
 const selectedPatient = ref<Patient | null>(null)
 const patientLookupRef = ref<InstanceType<typeof PatientLookup> | null>(null)
 const activeTab = ref<'waiting' | 'now_serving' | 'done'>('waiting')
-let realtimeChannel: RealtimeChannel | null = null
 
 const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })
+
+// ── Realtime queue state ───────────────────────────────────────────────────
+const clinicId = authStore.clinic?.id ?? ''
+const { queue, loading, waiting, nowServing, done, counts, loadQueue, subscribe } =
+  useQueueRealtime(clinicId)
+
+// ── Computed ───────────────────────────────────────────────────────────────
+const waitingCount = computed(() => counts.value.waiting)
 
 const tabs = computed(() => [
   { label: 'Waiting',  value: 'waiting' as const,     count: counts.value.waiting },
@@ -226,41 +244,30 @@ const tabs = computed(() => [
   { label: 'Done',     value: 'done' as const,         count: counts.value.done },
 ])
 
-const counts = computed(() => ({
-  waiting:     queue.value.filter(q => q.status === 'waiting').length,
-  now_serving: queue.value.filter(q => q.status === 'now_serving').length,
-  done:        queue.value.filter(q => q.status === 'done').length,
-}))
-
-const waitingCount = computed(() => counts.value.waiting)
-
-const nowServing = computed(() =>
-  queue.value.find(q => q.status === 'now_serving') ?? null
-)
-
 const filteredQueue = computed(() =>
   queue.value.filter(q => q.status === activeTab.value)
 )
 
-async function loadQueue() {
-  if (!authStore.clinic?.id) return
-  loading.value = true
-  const { data } = await queueService.getTodayQueue(authStore.clinic.id)
-  queue.value = data ?? []
-  loading.value = false
+// ── TV Display ─────────────────────────────────────────────────────────────
+function openTVDisplay() {
+  router.push({ name: 'queue-tv' })
 }
+
+// ── Queue actions ──────────────────────────────────────────────────────────
+// After any write we let Realtime push the update — no manual reload needed.
+// We still reload once as a safeguard for operations that touch multiple rows.
 
 async function handleCallNext() {
   if (!authStore.clinic?.id) return
   calling.value = true
   await queueService.callNext(authStore.clinic.id, authStore.profile?.id)
+  // Realtime will update queue; reload once for safety
   await loadQueue()
   calling.value = false
 }
 
 async function callSpecific(item: QueueWithPatient) {
   if (!authStore.clinic?.id) return
-  // Mark any current "now_serving" as done first
   if (nowServing.value) {
     await queueService.updateStatus(authStore.clinic.id, nowServing.value.id, 'done')
   }
@@ -319,6 +326,7 @@ async function handleAddToQueue() {
     return
   }
 
+  // Realtime INSERT will update the queue; reload once for safety
   await loadQueue()
 
   selectedPatient.value = null
@@ -326,22 +334,13 @@ async function handleAddToQueue() {
   activeTab.value = 'waiting'
 }
 
+// ── Lifecycle ──────────────────────────────────────────────────────────────
 onMounted(async () => {
   await loadQueue()
-
-  // Subscribe to realtime updates
-  if (authStore.clinic?.id) {
-    realtimeChannel = queueService.subscribeToQueue(authStore.clinic.id, async () => {
-      await loadQueue()
-    })
-  }
+  subscribe()
 
   watchBranchChange(async () => {
     await loadQueue()
   })
-})
-
-onUnmounted(() => {
-  realtimeChannel?.unsubscribe()
 })
 </script>

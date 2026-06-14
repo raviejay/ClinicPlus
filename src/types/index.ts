@@ -9,13 +9,6 @@ export type BookingMode = 'auto_assign' | 'doctor_selection' | 'hybrid'
 export type QueueStatus = 'waiting' | 'now_serving' | 'done' | 'skipped'
 /**
  * DB-backed statuses — must match the Postgres CHECK constraint on appointments.status.
- * If you need 'arrived' | 'checked_in' | 'consulting', add them to the DB migration first:
- *   ALTER TABLE appointments DROP CONSTRAINT appointments_status_check;
- *   ALTER TABLE appointments ADD CONSTRAINT appointments_status_check
- *     CHECK (status = ANY (ARRAY[
- *       'pending','confirmed','in_queue','completed','cancelled','no_show',
- *       'arrived','checked_in','consulting'
- *     ]));
  */
 export type AppointmentStatus =
   | 'pending'
@@ -27,11 +20,39 @@ export type AppointmentStatus =
 
 /**
  * Extended display-only statuses for UI labels/badges.
- * Do NOT write these to the DB until the migration above is applied.
  */
 export type AppointmentDisplayStatus = AppointmentStatus | 'arrived' | 'checked_in' | 'consulting'
 
-// Service categories — broad enough for any clinic type
+// ──────────────────────────────────────────────────────────
+// Clinic-defined service catalog
+// Each clinic manages their own list of service categories
+// and services via Settings → Services.
+// ──────────────────────────────────────────────────────────
+export interface ClinicService {
+  id: string
+  clinic_id: string
+  category_id: string
+  category_name: string
+  category_icon: string
+  service_name: string
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+/**
+ * A grouped view of ClinicService rows — one entry per category
+ * with all services under it.
+ */
+export interface ClinicServiceCategory {
+  id: string        // category_id
+  label: string     // category_name
+  icon: string      // category_icon
+  services: string[] // service_name values
+}
+
+// Legacy built-in service categories (used as fallback when a clinic
+// has no custom services configured yet).
 export interface ServiceCategory {
   id: string
   label: string

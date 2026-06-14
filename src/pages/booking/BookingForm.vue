@@ -62,15 +62,27 @@
           :style="{ background: primaryColor }">Selected ✓</span>
       </div>
       <div class="p-5">
+
+        <!-- No services notice -->
+        <div v-if="categories.length === 0"
+          class="text-center py-6 text-xs text-slate-400">
+          <span class="material-icons text-slate-300 text-3xl block mb-2">medical_services</span>
+          No services available at the moment.
+        </div>
+
         <!-- Category grid -->
-        <div v-if="!selectedCategory" class="grid grid-cols-2 gap-2">
+        <div v-else-if="!selectedCategory" class="grid grid-cols-2 gap-2">
           <button v-for="cat in categories" :key="cat.id"
             @click="$emit('update:selectedCategory', cat)"
             class="flex items-center gap-2.5 px-3 py-3.5 rounded-xl border border-gray-200 hover:bg-slate-50 text-left transition-all active:scale-95">
             <span class="text-2xl">{{ cat.icon }}</span>
-            <span class="text-xs font-semibold text-slate-700 leading-tight">{{ cat.label }}</span>
+            <div>
+              <span class="text-xs font-semibold text-slate-700 leading-tight block">{{ cat.label }}</span>
+              <span class="text-[10px] text-slate-400">{{ cat.services.length }} service{{ cat.services.length !== 1 ? 's' : '' }}</span>
+            </div>
           </button>
         </div>
+
         <!-- Services within category -->
         <div v-else class="space-y-3">
           <button @click="$emit('update:selectedCategory', null); form.service_name = ''"
@@ -92,6 +104,7 @@
             </button>
           </div>
         </div>
+
         <!-- Selected badge -->
         <div v-if="form.service_name"
           class="mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 border"
@@ -190,12 +203,12 @@
 </template>
 
 <script setup lang="ts">
-import type { ServiceCategory } from '@/types'
+import type { ClinicServiceCategory } from '@/types'
 
 defineProps<{
   form: Record<string, any>
   primaryColor: string
-  selectedCategory: ServiceCategory | null
+  selectedCategory: ClinicServiceCategory | null
   doctors: { id: string; full_name: string }[]
   showDoctorSelect: boolean
   timeSlots: string[]
@@ -203,11 +216,12 @@ defineProps<{
   errorMsg: string
   saving: boolean
   canSubmit: boolean
-  categories: ServiceCategory[]
+  /** Clinic's own service categories (from clinic_services table) */
+  categories: ClinicServiceCategory[]
 }>()
 
 defineEmits<{
-  (e: 'update:selectedCategory', val: ServiceCategory | null): void
+  (e: 'update:selectedCategory', val: ClinicServiceCategory | null): void
   (e: 'book'): void
 }>()
 </script>
