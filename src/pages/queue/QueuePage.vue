@@ -232,7 +232,7 @@ const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: '
 
 // ── Realtime queue state ───────────────────────────────────────────────────
 const clinicId = authStore.clinic?.id ?? ''
-const { queue, loading, waiting, nowServing, done, counts, loadQueue, subscribe } =
+const { queue, loading, nowServing, counts, loadQueue, subscribe } =
   useQueueRealtime(clinicId)
 
 // ── Computed ───────────────────────────────────────────────────────────────
