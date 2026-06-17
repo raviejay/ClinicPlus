@@ -176,6 +176,7 @@ export interface Branch {
   address: string | null
   contact_number: string | null
   created_at: string
+  slug: string
 }
 
 export interface Patient {

@@ -28,7 +28,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug</label>
             <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-slate-50">
-              <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">clinicgo.app/book/</span>
+              <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">{{ appOrigin }}/book/</span>
               <input v-model="form.slug" type="text"
                 class="flex-1 px-3 py-3 text-sm text-sky-600 font-mono bg-transparent focus:outline-none" />
             </div>
@@ -100,6 +100,41 @@
       </button>
 
       <!-- ════════════════════════════════════════════════════
+           BOOKING LINKS & QR CODES
+      ════════════════════════════════════════════════════ -->
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-slate-50">
+          <h2 class="text-sm font-bold text-slate-900">Booking Links &amp; QR Codes</h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Share these links or print the QR codes so patients can book at the right location.
+          </p>
+        </div>
+        <div class="p-5 space-y-4">
+          <!-- Main clinic card -->
+          <BookingLinkCard
+            :label="authStore.clinic?.name ?? 'Main Clinic'"
+            :url="mainBookingUrl"
+            badge="Main"
+            badge-color="bg-sky-100 text-sky-700"
+          />
+          <!-- One card per branch -->
+          <BookingLinkCard
+            v-for="branch in branches"
+            :key="branch.id"
+            :label="branch.name"
+            :url="branchBookingUrl(branch)"
+            badge="Branch"
+            badge-color="bg-violet-100 text-violet-700"
+          />
+          <p v-if="branches.length === 0"
+            class="text-xs text-slate-400 flex items-center gap-1.5 py-1">
+            <span class="material-icons text-[14px]">info</span>
+            Add branches to generate their own booking links and QR codes.
+          </p>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════
            SERVICE MANAGEMENT
            Clinics define their own service catalog here.
            These appear in the booking page and new appointment form.
@@ -156,7 +191,6 @@
                 </span>
                 <span class="flex-1 text-sm text-slate-700">{{ svc.service_name }}</span>
                 <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <!-- Toggle active -->
                   <button
                     @click="toggleServiceActive(svc)"
                     :title="svc.is_active ? 'Deactivate' : 'Activate'"
@@ -164,7 +198,6 @@
                       svc.is_active ? 'text-amber-400 hover:bg-amber-50' : 'text-green-500 hover:bg-green-50']">
                     <span class="material-icons text-[15px]">{{ svc.is_active ? 'visibility_off' : 'visibility' }}</span>
                   </button>
-                  <!-- Delete -->
                   <button
                     @click="deleteService(svc.id)"
                     class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 transition-colors">
@@ -192,12 +225,10 @@
           </div>
 
           <div class="p-5 space-y-4">
-            <!-- Category -->
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
                 Category <span class="text-red-400">*</span>
               </label>
-              <!-- Existing category or new -->
               <div class="flex gap-2 mb-2">
                 <button
                   @click="newServiceMode = 'existing'"
@@ -213,7 +244,6 @@
                 </button>
               </div>
 
-              <!-- Pick from existing categories -->
               <div v-if="newServiceMode === 'existing'" class="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto">
                 <button
                   v-for="cat in existingCategories"
@@ -231,7 +261,6 @@
                 </p>
               </div>
 
-              <!-- Create new category -->
               <div v-else class="space-y-3">
                 <div class="flex gap-2">
                   <div class="w-16">
@@ -248,7 +277,6 @@
               </div>
             </div>
 
-            <!-- Service name -->
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">
                 Service Name <span class="text-red-400">*</span>
@@ -257,7 +285,6 @@
                 class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all" />
             </div>
 
-            <!-- Error -->
             <p v-if="serviceErrorMsg" class="text-xs text-red-500">{{ serviceErrorMsg }}</p>
 
             <button @click="addService" :disabled="addingService || !canAddService"
@@ -276,15 +303,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
+import { useBranchStore } from '@/stores/branch'
 import { supabase } from '@/services/supabase'
 import { clinicServicesService } from '@/services/clinic-services.service'
 import AppLayout from '@/layouts/AppLayout.vue'
-import type { ClinicService } from '@/types'
+import BookingLinkCard from '@/components/BookingLinkCard.vue'
+import type { ClinicService, Branch } from '@/types'
 
 const authStore = useAuthStore()
+const branchStore = useBranchStore()
 const { canUseFeature } = useClinic()
 
-// ── Settings form ──
+// Use the actual deployed origin — works on localhost AND Vercel
+const appOrigin = window.location.origin
+
+// ── Settings form ──────────────────────────────────────────
 const saving = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
@@ -342,7 +375,19 @@ async function saveSettings() {
   setTimeout(() => successMsg.value = '', 3000)
 }
 
-// ── Service management ──
+// ── Booking links ───────────────────────────────────────────
+const branches = computed<Branch[]>(() => branchStore.branches)
+
+const mainBookingUrl = computed(() =>
+  `${appOrigin}/book/${(form.value.slug || authStore.clinic?.slug) ?? ''}`
+)
+
+function branchBookingUrl(branch: Branch): string {
+  const clinicSlug = (form.value.slug || authStore.clinic?.slug) ?? ''
+  return `${appOrigin}/book/${clinicSlug}/${branch.slug}`
+}
+
+// ── Service management ──────────────────────────────────────
 const loadingServices = ref(false)
 const allServices = ref<ClinicService[]>([])
 const showAddServiceModal = ref(false)
@@ -357,7 +402,6 @@ const newService = ref({
   service_name: '',
 })
 
-/** Unique categories extracted from existing services */
 const existingCategories = computed(() => {
   const map = new Map<string, { id: string; name: string; icon: string }>()
   for (const svc of allServices.value) {
@@ -368,7 +412,6 @@ const existingCategories = computed(() => {
   return Array.from(map.values())
 })
 
-/** Services grouped by category for display */
 const groupedServices = computed(() => {
   const map: Record<string, { name: string; icon: string; items: ClinicService[] }> = {}
   for (const svc of allServices.value) {
@@ -419,10 +462,8 @@ async function addService() {
   })
 
   addingService.value = false
-
   if (error) { serviceErrorMsg.value = error; return }
 
-  // Reset form & reload
   newService.value = { category_id: '', category_name: '', category_icon: '🏥', service_name: '' }
   newServiceMode.value = 'existing'
   showAddServiceModal.value = false
@@ -440,5 +481,8 @@ async function deleteService(id: string) {
   await loadServices()
 }
 
-onMounted(() => loadServices())
+onMounted(() => {
+  loadServices()
+  if (authStore.clinic?.id) branchStore.loadBranches()
+})
 </script>

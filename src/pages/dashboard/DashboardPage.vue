@@ -209,11 +209,20 @@
             <div v-for="row in clinicInfo" :key="row.label"
               class="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
               <span class="text-xs text-slate-400 font-medium">{{ row.label }}</span>
-              <component :is="row.link ? 'a' : 'span'"
-                v-bind="row.link ? { href: row.link, target: '_blank' } : {}"
-                :class="['text-xs font-bold truncate max-w-[200px]', row.link ? 'text-sky-500 hover:text-sky-600 font-mono' : row.color ?? 'text-slate-700']">
-                {{ row.value }}
-              </component>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <component :is="row.link ? 'a' : 'span'"
+                  v-bind="row.link ? { href: row.link, target: '_blank' } : {}"
+                  :class="['text-xs font-bold truncate max-w-[160px]', row.link ? 'text-sky-500 hover:text-sky-600 font-mono' : row.color ?? 'text-slate-700']">
+                  {{ row.value }}
+                </component>
+                <button v-if="(row as any).copyable"
+                  @click="copyBookingUrl"
+                  :title="copiedUrl ? 'Copied!' : 'Copy URL'"
+                  :class="['w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0',
+                    copiedUrl ? 'text-green-500 bg-green-50' : 'text-slate-400 hover:text-sky-500 hover:bg-sky-50']">
+                  <span class="material-icons text-[14px]">{{ copiedUrl ? 'check' : 'content_copy' }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -243,9 +252,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useBranchFilter } from '@/composables/useBranchFilter'
+import { useBranchStore } from '@/stores/branch'
 import { useClinic } from '@/composables/useClinic'
 import AppLayout from '@/layouts/AppLayout.vue'
 import TrialBanner from '@/components/ui/TrialBanner.vue'
@@ -259,7 +268,21 @@ import type { Appointment } from '@/types'
 Chart.register(...registerables)
 
 const authStore = useAuthStore()
-const { watchBranchChange } = useBranchFilter()
+const branchStore = useBranchStore()
+
+// Re-fetch stats when branch selection changes
+function watchBranchChange(callback: () => void) {
+  watch(() => branchStore.activeBranchId, callback)
+}
+
+const copiedUrl = ref(false)
+async function copyBookingUrl() {
+  const urlRow = clinicInfo.value.find(r => r.label === 'Booking URL')
+  if (!urlRow?.value) return
+  await navigator.clipboard.writeText(urlRow.value as string)
+  copiedUrl.value = true
+  setTimeout(() => copiedUrl.value = false, 2000)
+}
 const { canUseFeature } = useClinic()
 
 const stats = ref({
@@ -520,13 +543,26 @@ const paymentMethods = computed(() => {
   ].filter(m => m.amount > 0)
 })
 
-const clinicInfo = computed(() => [
-  { label: 'Name',         value: authStore.clinic?.name ?? '—' },
-  { label: 'Booking URL',  value: `/book/${authStore.clinic?.slug}`, link: `/book/${authStore.clinic?.slug}` },
-  { label: 'Booking mode', value: authStore.clinicSettings?.booking_mode?.replace(/_/g, ' ') ?? '—' },
-  { label: 'Queue',        value: authStore.clinicSettings?.queue_enabled ? '● Enabled' : '○ Disabled',
-    color: authStore.clinicSettings?.queue_enabled ? 'text-green-600' : 'text-slate-400' },
-])
+const clinicInfo = computed(() => {
+  const clinicSlug = authStore.clinic?.slug ?? ''
+  const activeBranch = branchStore.activeBranch
+  const isMain = !activeBranch || (activeBranch as any).isMain || branchStore.activeBranchId === null
+  const branchSlug = (!isMain && activeBranch && 'slug' in activeBranch) ? (activeBranch as any).slug : null
+
+  const bookingPath = branchSlug
+    ? `/book/${clinicSlug}/${branchSlug}`
+    : `/book/${clinicSlug}`
+
+  const fullUrl = `${window.location.origin}${bookingPath}`
+
+  return [
+    { label: 'Name',         value: authStore.clinic?.name ?? '—' },
+    { label: 'Booking URL',  value: fullUrl, link: bookingPath, copyable: true },
+    { label: 'Booking mode', value: authStore.clinicSettings?.booking_mode?.replace(/_/g, ' ') ?? '—' },
+    { label: 'Queue',        value: authStore.clinicSettings?.queue_enabled ? '● Enabled' : '○ Disabled',
+      color: authStore.clinicSettings?.queue_enabled ? 'text-green-600' : 'text-slate-400' },
+  ]
+})
 
 const quickActions = [
   { to: '/appointments/new',    icon: 'event_available', label: 'New Appointment', desc: 'Schedule a visit',  bg: 'bg-sky-50',    iconColor: 'text-sky-500' },

@@ -291,12 +291,15 @@ import { useRoute } from 'vue-router'
 import { clinicService } from '@/services/clinic.service'
 import { patientService } from '@/services/patient.service'
 import { appointmentService } from '@/services/appointment.service'
-import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, ServiceCategory } from '@/types'
+import { branchService } from '@/services/branch.service'
+import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, Branch, ServiceCategory } from '@/types'
 import { SERVICE_CATEGORIES } from '@/types'
 import BookingForm from './BookingForm.vue'
 
 const route = useRoute()
-const slug = route.params.slug as string
+// /book/:clinicSlug/:branchSlug?
+const clinicSlug = route.params.clinicSlug as string
+const branchSlug = route.params.branchSlug as string | undefined
 
 const loading = ref(true)
 const saving = ref(false)
@@ -306,6 +309,8 @@ const errorMsg = ref('')
 const clinic = ref<Clinic | null>(null)
 const settings = ref<ClinicSettings | null>(null)
 const branding = ref<ClinicBranding | null>(null)
+// resolved branch — null means main clinic (no branch)
+const branch = ref<Branch | null>(null)
 const doctors = ref<{ id: string; full_name: string }[]>([])
 const clinicPlan = ref<ClinicPlan>('starter')
 const isTrialActive = ref(false)
@@ -391,12 +396,14 @@ async function handleBooking() {
   saving.value = true
   errorMsg.value = ''
 
+  // Pass branch_id so the patient is linked to the correct branch
   const { data: patient, error: patientError } = await patientService.findOrCreate(
     clinic.value.id,
     {
       full_name: form.value.full_name,
       contact_number: form.value.contact_number,
       email: form.value.email.trim() || undefined,
+      branch_id: branch.value?.id ?? undefined,
     },
     { plan: getEffectivePlan(clinic.value) }
   )
@@ -407,8 +414,10 @@ async function handleBooking() {
     return
   }
 
+  // Pass branch_id so the appointment lands in the correct branch
   const { error: apptError } = await appointmentService.createPublic({
     clinic_id: clinic.value.id,
+    branch_id: branch.value?.id ?? undefined,
     patient_id: patient.id,
     appointment_date: form.value.appointment_date,
     time_slot: form.value.time_slot || undefined,
@@ -424,13 +433,20 @@ async function handleBooking() {
 }
 
 onMounted(async () => {
-  const { data } = await clinicService.getClinicBySlug(slug)
+  // Use clinicSlug (not old "slug") to load the clinic
+  const { data } = await clinicService.getClinicBySlug(clinicSlug)
   if (data) {
     clinic.value = data
     settings.value = (data as any).clinic_settings ?? null
     branding.value = (data as any).clinic_branding ?? null
     clinicPlan.value = data.plan
     isTrialActive.value = !!(data.is_trial && data.trial_ends_at && new Date(data.trial_ends_at) > new Date())
+
+    // If a branch slug was in the URL, resolve it to a real branch row
+    if (branchSlug) {
+      const { data: branchData } = await branchService.getBySlug(data.id, branchSlug)
+      branch.value = branchData ?? null
+    }
 
     const ep = getEffectivePlan(data)
     if ((ep === 'pro' || ep === 'premium') && settings.value?.booking_mode !== 'auto_assign') {
