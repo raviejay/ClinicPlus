@@ -7,11 +7,16 @@
           <h1 class="text-xl font-black tracking-tight text-slate-900">Patients</h1>
           <p class="text-xs text-slate-400 mt-0.5">{{ totalCount }} total patients</p>
         </div>
-        <RouterLink to="/patients/new"
+        <RouterLink v-if="!isReadOnly" to="/patients/new"
           class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
           <span class="material-icons text-sm">person_add</span>
           Add
         </RouterLink>
+        <span v-else
+          class="flex items-center gap-1.5 bg-slate-100 text-slate-400 text-sm font-bold px-4 py-2 rounded-xl cursor-not-allowed" title="Read-only — choose a plan to add patients">
+          <span class="material-icons text-sm">lock</span>
+          Add
+        </span>
       </div>
 
       <SearchBar
@@ -72,11 +77,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { patientService } from '@/services/patient.service'
+import { useClinic } from '@/composables/useClinic'
 import AppLayout from '@/layouts/AppLayout.vue'
 import SearchBar from '@/components/ui/SearchBar.vue'
 import type { Patient } from '@/types'
 
 const authStore = useAuthStore()
+const { isReadOnly } = useClinic()
 const { watchBranchChange } = useBranchFilter()
 const patients = ref<Patient[]>([])
 const totalCount = ref(0)

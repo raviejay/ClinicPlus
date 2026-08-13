@@ -35,7 +35,7 @@
       <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <p class="text-sm text-red-800 font-medium">Your trial has expired. Upgrade to restore full access.</p>
+      <p class="text-sm text-red-800 font-medium">Your trial has expired — you're in read-only mode. Choose a plan to add new patients, records, or appointments.</p>
     </div>
     <RouterLink to="/admin/billing"
       class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">

@@ -77,6 +77,31 @@ export const appointmentService = {
     return { data: (data as any) ?? [], error: null };
   },
 
+  /**
+   * All appointments for a single patient, most recent first.
+   * Used by the patient chart view (PatientDetailPage.vue).
+   */
+  async getByPatient(
+    clinicId: string,
+    patientId: string,
+  ): Promise<
+    ApiResponse<
+      (Appointment & {
+        profiles: { full_name: string | null } | null;
+      })[]
+    >
+  > {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("*, profiles(full_name)")
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId)
+      .order("appointment_date", { ascending: false });
+
+    if (error) return { data: null, error: error.message };
+    return { data: (data as any) ?? [], error: null };
+  },
+
   async getToday(clinicId: string): Promise<
     ApiResponse<
       (Appointment & {

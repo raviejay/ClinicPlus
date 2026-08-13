@@ -3,9 +3,18 @@
     <div class="space-y-4">
 
       <!-- Header -->
-      <div>
-        <h1 class="text-xl font-black tracking-tight text-slate-900">Medical Records</h1>
-        <p class="text-xs text-slate-400 mt-0.5">Search and filter across all patient records</p>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-black tracking-tight text-slate-900">Medical Records</h1>
+          <p class="text-xs text-slate-400 mt-0.5">Search and filter across all patient records</p>
+        </div>
+        <button
+          @click="handleExport"
+          :disabled="loading || records.length === 0"
+          class="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-sm font-bold px-4 py-2 rounded-xl transition-colors shrink-0 disabled:opacity-40 disabled:pointer-events-none">
+          <span class="material-icons text-base">file_download</span>
+          Export to Excel
+        </button>
       </div>
 
       <!-- Filters -->
@@ -157,6 +166,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { medicalRecordService, type MedicalRecordWithDetails } from '@/services/medical-record.service'
 import { appointmentService } from '@/services/appointment.service'
+import { exportConsolidatedRecordsToExcel } from '@/utils/patientExport'
 import AppLayout from '@/layouts/AppLayout.vue'
 import SearchBar from '@/components/ui/SearchBar.vue'
 
@@ -202,6 +212,14 @@ async function loadRecords() {
   })
   records.value = data ?? []
   loading.value = false
+}
+
+function handleExport() {
+  exportConsolidatedRecordsToExcel(
+    records.value,
+    { dateFrom: filters.value.dateFrom || undefined, dateTo: filters.value.dateTo || undefined },
+    authStore.clinic?.name,
+  )
 }
 
 onMounted(async () => {

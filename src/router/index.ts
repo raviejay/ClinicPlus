@@ -1,6 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
+// Routes that CREATE data. Blocked entirely when the clinic has no
+// active paid access (trial expired, never subscribed) — read-only
+// clinics can still view /patients, /records, /appointments etc.,
+// they just can't reach these.
+const WRITE_ROUTE_NAMES = new Set([
+  "patients-new",
+  "medical-records-new",
+  "appointments-new",
+  "revenue-record",
+]);
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -201,6 +212,19 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin)
     return { name: "dashboard" };
   if (to.meta.requiresAdmin && !authStore.isAdmin) return { name: "dashboard" };
+
+  // Read-only enforcement: trial expired with no paid plan on file.
+  // Blocks direct URL navigation too, not just hidden buttons.
+  if (WRITE_ROUTE_NAMES.has(to.name as string)) {
+    const clinic = authStore.clinic;
+    const trialExpired =
+      !!clinic?.is_trial &&
+      !!clinic?.trial_ends_at &&
+      new Date(clinic.trial_ends_at) <= new Date();
+    if (trialExpired) {
+      return { name: "admin-billing", query: { readonly: "1" } };
+    }
+  }
 });
 
 export default router;

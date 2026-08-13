@@ -8,13 +8,18 @@
           <h1 class="text-xl font-black tracking-tight text-slate-900">Schedule</h1>
           <p class="text-xs text-slate-400 mt-0.5">{{ todayLabel }}</p>
         </div>
-        <RouterLink to="/appointments/new"
+        <RouterLink v-if="!isReadOnly" to="/appointments/new"
           class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
           Book
         </RouterLink>
+        <span v-else
+          class="flex items-center gap-1.5 bg-slate-100 text-slate-400 text-sm font-bold px-4 py-2 rounded-xl cursor-not-allowed" title="Read-only — choose a plan to book appointments">
+          <span class="material-icons text-sm">lock</span>
+          Book
+        </span>
       </div>
 
       <!-- Toast notification -->
@@ -437,10 +442,12 @@ import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { appointmentService } from '@/services/appointment.service'
 import { queueService } from '@/services/queue.service'
+import { useClinic } from '@/composables/useClinic'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { Appointment } from '@/types'
 
 const authStore = useAuthStore()
+const { isReadOnly } = useClinic()
 const { watchBranchChange } = useBranchFilter()
 const appointments = ref<Appointment[]>([])
 const searchQuery = ref('')
