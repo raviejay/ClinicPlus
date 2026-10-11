@@ -2,7 +2,6 @@ import { supabase } from './supabase'
 import type { Patient, ApiResponse, ClinicPlan } from '@/types'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { planRestrictionService } from './planRestriction.service'
-import { usageService } from './usage.service'
 
 export const patientService = {
   async findOrCreate(
@@ -61,7 +60,6 @@ export const patientService = {
 
     if (error) return { data: null, error: error.message }
 
-    await usageService.incrementNewPatients(clinicId)
     return { data: created, error: null }
   },
 

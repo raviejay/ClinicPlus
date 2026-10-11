@@ -38,12 +38,10 @@ export const staffService = {
     return { data: { password: data.password }, error: null };
   },
 
-  async remove(clinicId: string, userId: string): Promise<ApiResponse<null>> {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ clinic_id: null })
-      .eq("id", userId)
-      .eq("clinic_id", clinicId);
+  // Detaching a user from the clinic is a server function: clinic_id can't be
+  // changed from the browser, and the server checks the caller is this clinic's admin.
+  async remove(_clinicId: string, userId: string): Promise<ApiResponse<null>> {
+    const { error } = await supabase.rpc("remove_staff", { p_user_id: userId });
 
     if (error) return { data: null, error: error.message };
     return { data: null, error: null };

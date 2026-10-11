@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(profile.value?.role ?? ''))
   const isSuperAdmin = computed(() => profile.value?.role === 'super_admin')
   const isDoctor = computed(() => profile.value?.role === 'doctor')
+  // Diagnoses and prescriptions are visible to admins and doctors only (enforced by RLS too)
+  const canViewRecords = computed(() => ['admin', 'doctor', 'super_admin'].includes(profile.value?.role ?? ''))
 
   async function initialize() {
     try {
@@ -109,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user, profile, clinic, clinicSettings, loading, initialized,
-    isAuthenticated, hasClinic, isAdmin, isSuperAdmin, isDoctor,
+    isAuthenticated, hasClinic, isAdmin, isSuperAdmin, isDoctor, canViewRecords,
     initialize, signup, login, logout, loadProfile, loadClinic, cleanup,
   }
 })

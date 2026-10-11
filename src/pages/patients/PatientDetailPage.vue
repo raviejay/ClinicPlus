@@ -46,7 +46,7 @@
                   <span class="material-icons text-base">event</span>
                   Book Appointment
                 </RouterLink>
-                <RouterLink :to="`/medical-records/new?patient=${patient.id}`"
+                <RouterLink v-if="authStore.canViewRecords" :to="`/medical-records/new?patient=${patient.id}`"
                   class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold px-3.5 py-2 rounded-xl transition-colors shadow-sm shadow-sky-200">
                   <span class="material-icons text-base">note_add</span>
                   Add Record

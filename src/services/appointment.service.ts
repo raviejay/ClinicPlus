@@ -12,6 +12,13 @@ async function maybeSendConfirmationEmail(
   await notificationService.sendAppointmentConfirmation(appointmentId);
 }
 
+// A unique index stops two active bookings for the same doctor, date and time slot
+function appointmentError(error: { code?: string; message: string }): string {
+  return error.code === "23505"
+    ? "That time slot is already booked for this doctor. Please choose another time."
+    : error.message;
+}
+
 export const appointmentService = {
   async create(data: {
     clinic_id: string;
@@ -32,7 +39,7 @@ export const appointmentService = {
       .select()
       .single();
 
-    if (error) return { data: null, error: error.message };
+    if (error) return { data: null, error: appointmentError(error) };
     if (appt) await maybeSendConfirmationEmail(appt.id, status);
     return { data: appt, error: null };
   },
@@ -127,7 +134,7 @@ export const appointmentService = {
       .select()
       .single();
 
-    if (error) return { data: null, error: error.message };
+    if (error) return { data: null, error: appointmentError(error) };
     if (data) await maybeSendConfirmationEmail(data.id, status);
     return { data, error: null };
   },

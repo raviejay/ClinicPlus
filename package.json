@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "test:db": "node supabase/tests/security.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
@@ -20,6 +21,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^20.10.0",
     "@types/qrcode": "^1.5.6",

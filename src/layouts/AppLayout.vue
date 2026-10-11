@@ -329,15 +329,17 @@ const userInitial = computed(() =>
   (authStore.profile?.full_name ?? authStore.user?.email ?? 'U').charAt(0).toUpperCase()
 )
 
-const operationsNav = computed(() => [
-  { to: '/dashboard',    label: 'Dashboard',       icon: 'dashboard' },
-  { to: '/appointments', label: 'Appointments',    icon: 'calendar_month' },
-  { to: authStore.isDoctor ? '/queue/doctor' : '/queue', label: 'Queue', icon: 'queue' },
-  { to: '/patients',     label: 'Patients',        icon: 'group' },
-  { to: '/records',      label: 'Medical Records', icon: 'description' },
-  { to: '/revenue',      label: 'Payments',        icon: 'payments' },
-  { to: '/reports',      label: 'Reports',         icon: 'bar_chart' },
-])
+const operationsNav = computed(() =>
+  [
+    { to: '/dashboard',    label: 'Dashboard',       icon: 'dashboard' },
+    { to: '/appointments', label: 'Appointments',    icon: 'calendar_month' },
+    { to: authStore.isDoctor ? '/queue/doctor' : '/queue', label: 'Queue', icon: 'queue' },
+    { to: '/patients',     label: 'Patients',        icon: 'group' },
+    { to: '/records',      label: 'Medical Records', icon: 'description' },
+    { to: '/revenue',      label: 'Payments',        icon: 'payments' },
+    { to: '/reports',      label: 'Reports',         icon: 'bar_chart' },
+  ].filter(item => item.to !== '/records' || authStore.canViewRecords)
+)
 
 const managementNav = computed(() => {
   const items = [

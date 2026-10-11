@@ -76,13 +76,13 @@ const router = createRouter({
       path: "/medical-records/new",
       name: "medical-records-new",
       component: () => import("@/pages/medical-records/NewRecordPage.vue"),
-      meta: { requiresAuth: true, requiresClinic: true },
+      meta: { requiresAuth: true, requiresClinic: true, requiresClinicalAccess: true },
     },
     {
       path: "/records",
       name: "records",
       component: () => import("@/pages/medical-records/RecordsPage.vue"),
-      meta: { requiresAuth: true, requiresClinic: true },
+      meta: { requiresAuth: true, requiresClinic: true, requiresClinicalAccess: true },
     },
     // Appointments
     {
@@ -212,6 +212,8 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin)
     return { name: "dashboard" };
   if (to.meta.requiresAdmin && !authStore.isAdmin) return { name: "dashboard" };
+  if (to.meta.requiresClinicalAccess && !authStore.canViewRecords)
+    return { name: "dashboard" };
 
   // Read-only enforcement: trial expired with no paid plan on file.
   // Blocks direct URL navigation too, not just hidden buttons.
