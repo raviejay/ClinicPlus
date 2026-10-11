@@ -35,6 +35,17 @@ const reply = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   })
 
+// Calendar months, clamped to the last day (Jan 31 + 1 month = Feb 28)
+function addMonths(date: Date, months: number): Date {
+  const result = new Date(date.getTime())
+  const day = result.getUTCDate()
+  result.setUTCDate(1)
+  result.setUTCMonth(result.getUTCMonth() + months)
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate()
+  result.setUTCDate(Math.min(day, lastDay))
+  return result
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS })
   if (req.method !== "POST") return reply({ success: false, error: "Method not allowed" }, 405)
@@ -133,8 +144,24 @@ Deno.serve(async (req) => {
 
   const attrs = data.data.attributes
   const now = new Date()
-  const nextBilling = new Date(now)
-  nextBilling.setMonth(nextBilling.getMonth() + 1)
+
+  // Renewing the same paid plan before it ends adds a month to the current end date instead of
+  // restarting from today (no days lost). Any other change starts a fresh month from today.
+  const { data: current } = await admin
+    .from("subscriptions")
+    .select("plan, next_billing_date, reference_number")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("status", "active")
+    .order("next_billing_date", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Database timestamps carry no time zone; they are UTC
+  const currentEnd = current && current.plan === plan && !current.reference_number.startsWith("TRIAL-")
+    ? new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(current.next_billing_date) ? current.next_billing_date : `${current.next_billing_date}Z`)
+    : null
+  const periodStart = currentEnd && currentEnd > now ? currentEnd : now
+  const nextBilling = addMonths(periodStart, 1)
 
   // The browser can't create or activate subscriptions; only this function and the webhook can
   const { error: insertError } = await admin.from("subscriptions").insert({
