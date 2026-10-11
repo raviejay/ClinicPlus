@@ -143,6 +143,8 @@ export interface ClinicSettings {
   queue_enabled: boolean
   sms_enabled: boolean
   multi_branch_enabled: boolean
+  /** Patients one time slot can take; null = one per doctor (unlimited if the clinic has no doctors) */
+  slot_capacity?: number | null
 }
 
 export interface Subscription {

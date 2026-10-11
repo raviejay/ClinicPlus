@@ -242,6 +242,29 @@ export const appointmentService = {
     return { data: { appointment_id: appointmentId as string }, error: null };
   },
 
+  // Which time slots are already taken on a date (for this doctor, if one is chosen),
+  // plus the clinic's current date/time so past slots can be grayed out.
+  async getPublicAvailability(params: {
+    clinic_id: string;
+    date: string;
+    doctor_id?: string;
+    branch_id?: string;
+  }): Promise<ApiResponse<{ booked: string[]; today: string; minutes: number }>> {
+    const { data, error } = await supabase.rpc("get_public_availability", {
+      p_clinic_id: params.clinic_id,
+      p_date: params.date,
+      p_doctor_id: params.doctor_id ?? null,
+      p_branch_id: params.branch_id ?? null,
+    });
+
+    if (error) return { data: null, error: error.message };
+    if (!data) return { data: null, error: "Clinic not found" };
+    return {
+      data: data as { booked: string[]; today: string; minutes: number },
+      error: null,
+    };
+  },
+
   async getPublicDoctors(clinicId: string) {
     const { data, error } = await supabase.rpc("get_public_doctors", {
       p_clinic_id: clinicId,

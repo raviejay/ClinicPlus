@@ -213,7 +213,7 @@ async function part2() {
   }
   r = await as(db, 'anon', `select book_public_appointment('${ids.clinicA}', null, 'Spammer', '05550001', null, current_date+10, 'slot6', null, null, null, null)`)
   check('6th booking/day for same contact blocked', /Too many bookings/.test(r.error || ''), r.error)
-  r = await as(db, 'anon', `select book_public_appointment('${ids.clinicA}', null, 'Other', '05550002', null, current_date+10, 'slot1', null, null, null, null)`)
+  r = await as(db, 'anon', `select book_public_appointment('${ids.clinicA}', null, 'Other', '05550002', null, current_date+10, 'slot7', null, null, null, null)`)
   check('other contact unaffected', !r.error, r.error)
   await db.query(`select set_config('request.headers','{"x-forwarded-for":"9.9.9.9, 1.1.1.1"}',false)`)
   for (let i = 0; i < 10; i++) await db.query(`insert into public_booking_log(clinic_id, ip, contact) values ('${ids.clinicA}','9.9.9.9','c${i}')`)
@@ -276,9 +276,100 @@ async function part3() {
   check('expired TRIAL sub does not downgrade a paid-by-admin clinic', (await plan(ids.clinicA)) === 'pro')
 }
 
+
+async function part4() {
+  const db = await makeDb(MIGS)
+  await seed(db, { planA: 'premium' })
+  const adminA = { uid: ids.adminA }
+  const avail = async (clinic, date, doctor = null, branch = null) =>
+    (await as(db, 'anon', 'select get_public_availability($1,$2,$3,$4) as a', [clinic, date, doctor, branch])).rows[0]?.a
+  const book = (clinic, date, slot, contact, doctor = null, branch = null) =>
+    as(db, 'anon', 'select book_public_appointment($1,$2,$3,$4,null,$5,$6,$7,null,null,null) as id',
+      [clinic, branch, 'Patient ' + contact, contact, date, slot, doctor])
+  const day = async (n) => (await db.query(`select (current_date + ${n})::text d`)).rows[0].d
+  const d5 = await day(5), d6 = await day(6), d7 = await day(7), d8 = await day(8)
+
+  console.log('booking availability')
+  let a = await avail(ids.clinicA, d5)
+  check('empty day: nothing booked', a && a.booked.length === 0, JSON.stringify(a))
+  check('availability returns clinic "today" and minutes (Manila)', typeof a.today === 'string' && Number.isInteger(a.minutes))
+  const manila = (await db.query(`select (now() at time zone 'Asia/Manila')::date::text d`)).rows[0].d
+  check('availability today = Manila date', a.today === manila, `${a.today} vs ${manila}`)
+
+  // clinic A has 1 doctor and no explicit capacity -> capacity 1 per slot
+  let r = await book(ids.clinicA, d5, '9:00 AM', '08000001')
+  check('first booking for 9:00 AM ok', !r.error, r.error)
+  a = await avail(ids.clinicA, d5)
+  check('9:00 AM now shows as booked (any doctor)', a.booked.includes('9:00 AM'), JSON.stringify(a))
+  a = await avail(ids.clinicA, d5, ids.docA)
+  check('9:00 AM booked for the doctor too (clinic at capacity)', a.booked.includes('9:00 AM'))
+  r = await book(ids.clinicA, d5, '9:00 AM', '08000002')
+  check('second booking for a full slot refused', /already taken/.test(r.error || ''), r.error)
+  r = await book(ids.clinicA, d5, '10:00 AM', '08000002')
+  check('other slot still bookable', !r.error, r.error)
+  check('other day unaffected', (await avail(ids.clinicA, d6)).booked.length === 0)
+
+  console.log('explicit capacity')
+  r = await as(db, adminA, `update clinic_settings set slot_capacity = 2 where clinic_id='${ids.clinicA}'`)
+  check('admin can set slot capacity', !r.error, r.error)
+  r = await as(db, adminA, `update clinic_settings set slot_capacity = 0 where clinic_id='${ids.clinicA}'`)
+  check('capacity 0 rejected', !!r.error)
+  r = await as(db, { uid: ids.adminB }, `update clinic_settings set slot_capacity = 9 where clinic_id='${ids.clinicA}'`)
+  check('other clinic admin cannot change capacity', (await db.query(`select slot_capacity c from clinic_settings where clinic_id='${ids.clinicA}'`)).rows[0].c === 2)
+  a = await avail(ids.clinicA, d5)
+  check('capacity 2: 9:00 AM (1 booking) free again', !a.booked.includes('9:00 AM'), JSON.stringify(a))
+  r = await book(ids.clinicA, d5, '9:00 AM', '08000003')
+  check('second patient fits in capacity 2', !r.error, r.error)
+  check('now full', (await avail(ids.clinicA, d5)).booked.includes('9:00 AM'))
+  r = await book(ids.clinicA, d5, '9:00 AM', '08000004')
+  check('third refused', /already taken/.test(r.error || ''), r.error)
+
+  console.log('doctor-specific slots')
+  await db.query(`update clinic_settings set slot_capacity = 5 where clinic_id='${ids.clinicA}'`)
+  r = await book(ids.clinicA, d6, '11:00 AM', '08000010', ids.docA)
+  check('book with a doctor', !r.error, r.error)
+  check('any-doctor view: 11:00 AM still free (capacity 5)', !(await avail(ids.clinicA, d6)).booked.includes('11:00 AM'))
+  check('that doctor view: 11:00 AM booked', (await avail(ids.clinicA, d6, ids.docA)).booked.includes('11:00 AM'))
+  r = await book(ids.clinicA, d6, '11:00 AM', '08000011', ids.docA)
+  check('same doctor/slot refused', /already taken/.test(r.error || ''), r.error)
+  r = await book(ids.clinicA, d6, '11:00 AM', '08000012')
+  check('no-doctor booking at that slot still allowed', !r.error, r.error)
+  await db.query(`update appointments set status='cancelled' where doctor_id='${ids.docA}' and appointment_date='${d6}'`)
+  check('cancelled booking frees the doctor slot', !(await avail(ids.clinicA, d6, ids.docA)).booked.includes('11:00 AM'))
+
+  console.log('no doctors / branches')
+  for (const c of ['08100001', '08100002', '08100003']) {
+    r = await book(ids.clinicB, d7, '9:00 AM', c)
+    if (r.error) check('clinic without doctors: unlimited per slot', false, r.error)
+  }
+  check('clinic without doctors: nothing shows as booked', (await avail(ids.clinicB, d7)).booked.length === 0)
+  await db.query(`insert into branches(id,clinic_id,name,slug) values ('cccccccc-cccc-cccc-cccc-cccccccccccc','${ids.clinicA}','North','north')`)
+  await db.query(`update clinic_settings set slot_capacity = 1 where clinic_id='${ids.clinicA}'`)
+  r = await book(ids.clinicA, d8, '2:00 PM', '08200001', null, 'cccccccc-cccc-cccc-cccc-cccccccccccc')
+  check('book at a branch', !r.error, r.error)
+  check('branch page shows the slot booked', (await avail(ids.clinicA, d8, null, 'cccccccc-cccc-cccc-cccc-cccccccccccc')).booked.includes('2:00 PM'))
+  check('main-clinic page unaffected by branch bookings', !(await avail(ids.clinicA, d8)).booked.includes('2:00 PM'))
+
+  console.log('today / past times (Manila)')
+  r = await book(ids.clinicA, manila, '12:00 AM', '08300001')
+  check('a time that already passed today is refused', /already passed/.test(r.error || ''), r.error)
+  r = await book(ids.clinicA, manila, '11:59 PM', '08300002')
+  check('a later time today is allowed', !r.error || /already taken/.test(r.error), r.error)
+  r = await book(ids.clinicA, manila, 'whenever', '08300003')
+  check('unparseable free-text slot skips the past check', !r.error || !/passed/.test(r.error), r.error)
+
+  console.log('availability guards')
+  check('unknown clinic -> null', (await avail('99999999-9999-9999-9999-999999999999', d5)) === null)
+  await db.query(`update clinics set status='suspended' where id='${ids.clinicB}'`)
+  check('suspended clinic -> null', (await avail(ids.clinicB, d5)) === null)
+  check('anon cannot call slot_unavailable directly', !!(await as(db, 'anon', `select slot_unavailable('${ids.clinicA}', current_date, '9:00 AM', null, null)`)).error)
+  check('anon cannot call clinic_slot_capacity directly', !!(await as(db, 'anon', `select clinic_slot_capacity('${ids.clinicA}', null)`)).error)
+}
+
 ;(async () => {
   await part1()
   await part2()
   await part3()
+  await part4()
   summary()
 })().catch(e => { console.error(e); process.exit(1) })

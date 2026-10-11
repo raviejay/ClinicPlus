@@ -50,6 +50,16 @@
             </select>
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Patients per time slot</label>
+            <input v-model.number="settingsForm.slot_capacity" type="number" min="1" max="50" placeholder="Automatic"
+              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 bg-slate-50 focus:bg-white transition-all" />
+            <p class="text-xs text-slate-400 mt-1.5">
+              How many patients can book the same time. Leave blank for one per doctor (no limit if you haven't added doctors).
+              Full times show as "Booked" on your public booking page.
+            </p>
+          </div>
+
           <!-- Toggle settings -->
           <div class="space-y-3 pt-1">
             <div v-for="toggle in toggleSettings" :key="toggle.key"
@@ -332,6 +342,8 @@ const settingsForm = ref({
   booking_mode: authStore.clinicSettings?.booking_mode ?? 'auto_assign',
   queue_enabled: authStore.clinicSettings?.queue_enabled ?? false,
   multi_branch_enabled: authStore.clinicSettings?.multi_branch_enabled ?? false,
+  // null = automatic (one patient per doctor; unlimited if the clinic has no doctors)
+  slot_capacity: (authStore.clinicSettings?.slot_capacity ?? null) as number | null | '',
 })
 
 const toggleSettings = [
@@ -359,7 +371,13 @@ async function saveSettings() {
       .update({ name: form.value.name, email: form.value.email, slug: form.value.slug })
       .eq('id', clinicId),
     supabase.from('clinic_settings')
-      .update(settingsForm.value)
+      .update({
+        ...settingsForm.value,
+        // An emptied number input is '' — store that as "automatic"
+        slot_capacity: Number(settingsForm.value.slot_capacity) >= 1
+          ? Math.min(50, Math.floor(Number(settingsForm.value.slot_capacity)))
+          : null,
+      })
       .eq('clinic_id', clinicId),
   ])
 
