@@ -299,7 +299,7 @@ async function handleAdd() {
     return
   }
 
-  const { data, error } = await staffService.invite(authStore.clinic.id, {
+  const { data, error } = await staffService.invite({
     email: form.value.email,
     full_name: form.value.full_name,
     role: form.value.role,

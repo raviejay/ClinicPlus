@@ -1,4 +1,3 @@
-import { supabaseAdmin } from "./supabase.admin";
 import { supabase } from "./supabase";
 import type { Profile, ApiResponse } from "@/types";
 import { useBranchFilter } from "@/composables/useBranchFilter";
@@ -20,35 +19,23 @@ export const staffService = {
   },
 
   async invite(
-    clinicId: string,
     payload: { email: string; full_name: string; role: "doctor" | "staff" },
   ): Promise<ApiResponse<{ password: string }>> {
-    // Generate a simple readable temp password
-    const tempPassword = "ClinicGo@" + Math.floor(1000 + Math.random() * 9000);
-
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: payload.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { full_name: payload.full_name },
+    // Account creation needs the secret key, so it runs in the invite-staff
+    // Edge Function. The clinic is taken from the caller's profile server-side.
+    const { data, error } = await supabase.functions.invoke("invite-staff", {
+      body: payload,
     });
 
-    if (error) return { data: null, error: error.message };
-    if (!data.user) return { data: null, error: "Failed to create user" };
-
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .upsert({
-        id: data.user.id,
-        clinic_id: clinicId,
-        full_name: payload.full_name,
-        role: payload.role,
-      });
-
-    if (profileError) return { data: null, error: profileError.message };
+    if (error) {
+      // Surface the function's own error message when it returned one
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      return { data: null, error: body?.error ?? error.message };
+    }
+    if (data?.error) return { data: null, error: data.error };
 
     // Return the temp password so admin can share it
-    return { data: { password: tempPassword }, error: null };
+    return { data: { password: data.password }, error: null };
   },
 
   async remove(clinicId: string, userId: string): Promise<ApiResponse<null>> {
