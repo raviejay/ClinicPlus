@@ -10,9 +10,10 @@ const mocks = vi.hoisted(() => ({
   getPublicDoctors: vi.fn(),
   bookPublic: vi.fn(),
   getPublicBySlug: vi.fn(),
+  query: {} as Record<string, string>,
 }))
 
-vi.mock('vue-router', () => ({ useRoute: () => ({ params: { clinicSlug: 'demo' } }) }))
+vi.mock('vue-router', () => ({ useRoute: () => ({ params: { clinicSlug: 'demo' }, query: mocks.query }) }))
 vi.mock('@/services/clinic.service', () => ({ clinicService: { getClinicBySlug: mocks.getClinicBySlug } }))
 vi.mock('@/services/clinic-services.service', () => ({ clinicServicesService: { getCategories: mocks.getCategories } }))
 vi.mock('@/services/branch.service', () => ({ branchService: { getPublicBySlug: mocks.getPublicBySlug } }))
@@ -59,6 +60,7 @@ async function fillIn() {
 }
 
 beforeEach(() => {
+  mocks.query = {}
   mocks.getClinicBySlug.mockResolvedValue({ data: clinic, error: null })
   mocks.getCategories.mockResolvedValue({ data: [], error: null })
   mocks.getPublicDoctors.mockResolvedValue([])
@@ -237,5 +239,48 @@ describe('booking page: confirming', () => {
     await confirmButton().trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('Too many booking attempts')
+  })
+})
+
+describe('booking page: layouts and preview', () => {
+  const proClinic = { ...clinic, plan: 'pro' }
+
+  it('shows the classic layout for a clinic still set to the retired custom layout', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: { ...clinic, plan: 'premium', clinic_branding: { ...clinic.clinic_branding, layout: 'layout_d' } }, error: null,
+    })
+    await mountPage()
+    expect(wrapper.text()).not.toContain('Custom Layout')
+    expect(wrapper.text()).toContain('Online Appointment Booking')
+    expect(wrapper.find('#bk-name').exists()).toBe(true)
+  })
+
+  it('renders an unsaved layout and colors in preview mode, with booking turned off', async () => {
+    mocks.query = { preview: 'layout_b', primary: '#f43f5e', secondary: '#be123c' }
+    mocks.getClinicBySlug.mockResolvedValue({ data: proClinic, error: null })
+    await mountPage()
+
+    expect(wrapper.text()).toContain('Preview of your unsaved branding')
+    expect(wrapper.text()).toContain('Book your appointment online') // layout B header
+    expect(wrapper.html()).toContain('#f43f5e')
+    expect(wrapper.html().toLowerCase()).not.toContain('#0ea5e9')
+
+    await fillIn()
+    await slotButton('9:00 AM').trigger('click')
+    expect(confirmButton().attributes('disabled')).toBeDefined()
+    await confirmButton().trigger('click')
+    expect(mocks.bookPublic).not.toHaveBeenCalled()
+  })
+
+  it('ignores a malformed preview color and an unknown preview layout', async () => {
+    mocks.query = { preview: 'layout_z', primary: 'javascript:alert(1)' }
+    await mountPage()
+    expect(wrapper.text()).not.toContain('Preview of your unsaved branding')
+    expect(wrapper.html()).not.toContain('javascript:alert')
+  })
+
+  it('does not show the preview banner on the normal page', async () => {
+    await mountPage()
+    expect(wrapper.text()).not.toContain('Preview of your unsaved branding')
   })
 })

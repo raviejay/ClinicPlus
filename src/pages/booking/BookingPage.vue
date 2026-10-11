@@ -1,6 +1,13 @@
 <template>
   <div class="min-h-screen flex flex-col" :style="brandStyle">
 
+    <!-- Preview of unsaved branding (opened from Branding & Themes) -->
+    <div v-if="isPreview"
+      class="sticky top-0 z-50 bg-slate-900 text-white text-xs font-semibold text-center px-4 py-2 flex items-center justify-center gap-2">
+      <span class="material-icons text-[15px]">visibility</span>
+      Preview of your unsaved branding — booking is turned off here.
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
       <div class="flex flex-col items-center gap-3">
@@ -248,21 +255,6 @@
       </div>
     </template>
 
-    <!-- =================== LAYOUT D: Custom / Premium =================== -->
-    <template v-else-if="activeLayout === 'layout_d'">
-      <div class="flex-1 flex items-center justify-center p-8 text-center">
-        <div class="max-w-sm">
-          <div class="w-20 h-20 rounded-3xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-black shadow-lg"
-            :style="{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }">✦</div>
-          <h1 class="text-xl font-black text-slate-900 mb-2">Custom Layout</h1>
-          <p class="text-sm text-slate-500">Your custom booking page is being built by the ClinicGo team. In the meantime, patients can still book using the classic layout.</p>
-          <button @click="branding!.layout = 'layout_a'"
-            class="mt-4 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow"
-            :style="{ background: primaryColor }">Use Classic Layout</button>
-        </div>
-      </div>
-    </template>
-
   </div>
 </template>
 
@@ -330,8 +322,23 @@ const form = ref({
   notes: '',
 })
 
-const primaryColor = computed(() => branding.value?.primary_color ?? '#0EA5E9')
-const secondaryColor = computed(() => branding.value?.secondary_color ?? '#0369A1')
+// ?preview=layout_b&primary=%23rrggbb&secondary=%23rrggbb shows unsaved branding choices.
+// It only changes how this page renders for whoever opens the link; booking is disabled in preview.
+const PREVIEW_LAYOUTS = ['layout_a', 'layout_b', 'layout_c']
+const queryText = (value: unknown) => (typeof value === 'string' ? value : '')
+const previewLayout = computed(() => {
+  const v = queryText(route.query.preview)
+  return PREVIEW_LAYOUTS.includes(v) ? v : null
+})
+const previewColor = (value: unknown) => (/^#[0-9a-f]{6}$/i.test(queryText(value)) ? queryText(value) : null)
+const isPreview = computed(() => previewLayout.value !== null)
+
+const primaryColor = computed(
+  () => (isPreview.value ? previewColor(route.query.primary) : null) ?? branding.value?.primary_color ?? '#0EA5E9',
+)
+const secondaryColor = computed(
+  () => (isPreview.value ? previewColor(route.query.secondary) : null) ?? branding.value?.secondary_color ?? '#0369A1',
+)
 
 const effectivePlan = computed((): ClinicPlan => {
   if (!clinic.value) return 'starter'
@@ -341,10 +348,11 @@ const effectivePlan = computed((): ClinicPlan => {
 const emailsEnabled = computed(() => effectivePlan.value !== 'starter')
 
 const activeLayout = computed(() => {
+  if (previewLayout.value) return previewLayout.value
   const layout = branding.value?.layout ?? 'layout_a'
-  const plan = effectivePlan.value
-  if (layout === 'layout_d' && plan !== 'premium') return 'layout_a'
-  if ((layout === 'layout_b' || layout === 'layout_c') && plan === 'starter') return 'layout_a'
+  // 'layout_d' (custom theme) is built by our team on request; until one is installed it shows the classic layout
+  if (layout === 'layout_d') return 'layout_a'
+  if ((layout === 'layout_b' || layout === 'layout_c') && effectivePlan.value === 'starter') return 'layout_a'
   return layout
 })
 
@@ -354,6 +362,7 @@ const showDoctorSelect = computed(() =>
 )
 
 const canSubmit = computed(() =>
+  !isPreview.value &&
   form.value.full_name.trim().length >= 2 &&
   isValidPhone(form.value.contact_number) &&
   (!form.value.email.trim() || isValidEmail(form.value.email)) &&
