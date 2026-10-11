@@ -274,7 +274,7 @@
 
               <!-- Time slots -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-2">Available Time Slots</label>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Time Slots</label>
                 <div class="grid grid-cols-3 gap-2">
                   <button
                     v-for="slot in timeSlots"
@@ -284,12 +284,27 @@
                       'py-2.5 rounded-xl text-xs font-bold border transition-all',
                       form.time_slot === slot
                         ? 'bg-sky-500 border-sky-500 text-white shadow-sm shadow-sky-200'
-                        : 'bg-white border-gray-200 text-slate-500 hover:border-sky-300 hover:text-sky-600'
+                        : slotLoad(slot).total > 0
+                          ? 'bg-amber-50 border-amber-200 text-slate-600 hover:border-amber-400'
+                          : 'bg-white border-gray-200 text-slate-500 hover:border-sky-300 hover:text-sky-600'
                     ]"
                   >
                     {{ slot }}
+                    <span v-if="slotLoad(slot).total > 0"
+                      :class="['block text-[10px] font-semibold leading-tight',
+                        form.time_slot === slot ? 'text-white/80'
+                          : slotLoad(slot).doctorBusy ? 'text-red-500' : 'text-amber-600']">
+                      {{ slotLoadLabel(slotLoad(slot).total, slotLoad(slot).doctorBusy) }}
+                    </span>
                   </button>
                 </div>
+                <p v-if="selectedSlotNote" class="mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <span class="material-icons text-[14px] mt-px">info</span>
+                  {{ selectedSlotNote }}
+                </p>
+                <p v-else class="mt-2 text-[11px] text-slate-400">
+                  Any time can be booked — walk-ins are fine. Times with bookings are highlighted so you can see how busy they are.
+                </p>
               </div>
 
               <!-- Doctor (if feature enabled) -->
@@ -407,7 +422,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
@@ -417,6 +432,7 @@ import { clinicServicesService } from '@/services/clinic-services.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import type { Patient, ClinicPlan, ClinicServiceCategory } from '@/types'
 import { SERVICE_CATEGORIES } from '@/types'
+import { manilaToday, slotLoadLabel } from '@/utils/booking'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -448,7 +464,8 @@ const saving = ref(false)
 const errorMsg = ref('')
 const doctors = ref<{ id: string; full_name: string }[]>([])
 
-const today = new Date().toISOString().split('T')[0]
+// Philippine date (the UTC date is a day behind early in the morning)
+const today = manilaToday()
 const form = ref({
   appointment_date: today,
   time_slot: '',
@@ -462,6 +479,33 @@ const timeSlots = [
   '10:30 AM', '11:00 AM', '11:30 AM',
   '1:00 PM', '1:30 PM', '2:00 PM',
 ]
+
+// ── How busy each time is (informational only — staff may always squeeze people in) ──
+const bookedOnDate = ref<{ time_slot: string; doctor_id: string | null }[]>([])
+let slotLoadRequest = 0
+
+async function loadSlotLoad() {
+  if (!authStore.clinic?.id || !form.value.appointment_date) return
+  const request = ++slotLoadRequest
+  const { data } = await appointmentService.getSlotLoad(authStore.clinic.id, form.value.appointment_date)
+  if (request === slotLoadRequest) bookedOnDate.value = data ?? []
+}
+
+function slotLoad(slot: string) {
+  const inSlot = bookedOnDate.value.filter(a => a.time_slot === slot)
+  const doctorBusy = !!form.value.doctor_id && inSlot.some(a => a.doctor_id === form.value.doctor_id)
+  return { total: inSlot.length, doctorBusy }
+}
+
+const selectedSlotNote = computed(() => {
+  if (!form.value.time_slot) return ''
+  const { total, doctorBusy } = slotLoad(form.value.time_slot)
+  if (doctorBusy) return 'This doctor already has a patient at this time. You can still add this one.'
+  if (total > 0) return `${total === 1 ? '1 patient is' : `${total} patients are`} already booked at this time. You can still add this one.`
+  return ''
+})
+
+watch(() => [form.value.appointment_date, form.value.doctor_id], loadSlotLoad)
 
 // ── Validation ──
 const canSubmit = computed(() => {
@@ -556,6 +600,7 @@ function clearForm() {
   form.value = { appointment_date: today, time_slot: '', doctor_id: '', service_name: '', notes: '' }
   selectedCategory.value = null
   errorMsg.value = ''
+  loadSlotLoad()
 }
 
 // ── Submit ──
@@ -613,6 +658,7 @@ async function loadServices() {
 }
 
 onMounted(async () => {
+  loadSlotLoad()
   await loadServices()
   if (authStore.clinic?.id && canSelectDoctor.value) {
     doctors.value = await appointmentService.getDoctors(authStore.clinic.id)

@@ -88,6 +88,12 @@ export function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
 
+/** Badge under a time button on the staff booking page */
+export function slotLoadLabel(total: number, doctorBusy: boolean): string {
+  if (doctorBusy) return 'Doctor busy'
+  return total === 1 ? '1 booked' : `${total} booked`
+}
+
 /** Short code patients can quote when they call the clinic */
 export function bookingReference(appointmentId: string): string {
   return appointmentId.replace(/-/g, '').slice(0, 8).toUpperCase()

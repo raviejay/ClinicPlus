@@ -235,6 +235,28 @@ export const appointmentService = {
     return { data: { appointment_id: appointmentId as string }, error: null };
   },
 
+  // How many active bookings each time slot has on a date (staff view, branch-filtered).
+  // Informational: staff may book any time, e.g. a walk-in.
+  async getSlotLoad(
+    clinicId: string,
+    date: string,
+  ): Promise<ApiResponse<{ time_slot: string; doctor_id: string | null }[]>> {
+    const { buildBranchFilter } = useBranchFilter();
+    let query = supabase
+      .from("appointments")
+      .select("time_slot, doctor_id")
+      .eq("clinic_id", clinicId)
+      .eq("appointment_date", date)
+      .in("status", ["pending", "confirmed", "in_queue"])
+      .not("time_slot", "is", null);
+
+    query = buildBranchFilter(query);
+
+    const { data, error } = await query;
+    if (error) return { data: null, error: error.message };
+    return { data: (data ?? []) as { time_slot: string; doctor_id: string | null }[], error: null };
+  },
+
   // Which time slots are already taken on a date (for this doctor, if one is chosen),
   // plus the clinic's current date/time so past slots can be grayed out.
   async getPublicAvailability(params: {

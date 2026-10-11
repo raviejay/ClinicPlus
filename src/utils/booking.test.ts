@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addDays, BOOKING_SLOTS, bookingReference, buildIcs, daysBetween, isValidEmail, isValidPhone,
-  manilaToday, openingHoursLabel, slotMinutes,
+  manilaToday, openingHoursLabel, slotLoadLabel, slotMinutes,
 } from './booking'
 
 describe('slotMinutes', () => {
@@ -55,6 +55,16 @@ describe('validation', () => {
   it('checks email shape', () => {
     expect(isValidEmail('a@b.co')).toBe(true)
     expect(isValidEmail('nope')).toBe(false)
+  })
+})
+
+describe('slotLoadLabel', () => {
+  it('says how many are booked', () => {
+    expect(slotLoadLabel(1, false)).toBe('1 booked')
+    expect(slotLoadLabel(3, false)).toBe('3 booked')
+  })
+  it('calls out a busy doctor', () => {
+    expect(slotLoadLabel(2, true)).toBe('Doctor busy')
   })
 })
 
