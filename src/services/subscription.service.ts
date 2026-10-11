@@ -2,42 +2,9 @@
 // Manages subscription records and plan changes in the database
 
 import { supabase } from './supabase'
-import type { ApiResponse, ClinicPlan, Subscription } from '@/types'
-
-export interface CreateSubscriptionInput {
-  clinic_id: string
-  plan: ClinicPlan
-  payment_link_id: string
-  reference_number: string
-  amount: number
-}
+import type { ApiResponse, Subscription } from '@/types'
 
 export const subscriptionService = {
-  // Create a new subscription record
-  async createSubscription(data: CreateSubscriptionInput): Promise<ApiResponse<Subscription>> {
-    const today = new Date()
-    const nextBillingDate = new Date(today)
-    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
-
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .insert({
-        clinic_id: data.clinic_id,
-        plan: data.plan,
-        status: 'pending',
-        payment_link_id: data.payment_link_id,
-        reference_number: data.reference_number,
-        amount: data.amount,
-        billing_date: today.toISOString(),
-        next_billing_date: nextBillingDate.toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) return { data: null, error: error.message }
-    return { data: subscription as Subscription, error: null }
-  },
-
   // Get active subscription for clinic
   async getActiveSubscription(clinicId: string): Promise<ApiResponse<Subscription>> {
     const { data, error } = await supabase

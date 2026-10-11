@@ -449,8 +449,6 @@ const loadPaymentCheckout = async () => {
 
   try {
     const result = await paymongoSubscriptionService.createPaymentLink(
-      clinic.value.id,
-      clinic.value.name,
       subscription.value.plan,
       window.location.origin
     )
@@ -479,27 +477,11 @@ const upgradePlan = async (newPlan: ClinicPlan) => {
 
   try {
     const result = await paymongoSubscriptionService.createPaymentLink(
-      clinic.value.id,
-      clinic.value.name,
       newPlan,
       window.location.origin
     )
 
     if (result.error || !result.data) {
-      showFailedModal.value = true
-      return
-    }
-
-    const planPrice = availablePlans.find(p => p.id === newPlan)?.price ?? 0
-    const { error: subError } = await subscriptionService.createSubscription({
-      clinic_id: clinic.value.id,
-      plan: newPlan,
-      payment_link_id: result.data.id,
-      reference_number: result.data.reference_number,
-      amount: planPrice * 100,
-    })
-
-    if (subError) {
       showFailedModal.value = true
       return
     }

@@ -1,3 +1,4 @@
+import { supabase } from './supabase'
 import type { ClinicPlan, ApiResponse } from '@/types'
 
 interface EdgeFunctionResponse {
@@ -15,41 +16,25 @@ interface PaymentLinkResponse {
   id: string
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-
+// The server works out the clinic from the logged-in admin, picks the price,
+// and records the pending subscription. The browser only chooses the plan.
 async function createPaymentLink(
-  clinicId: string,
-  clinicName: string,
   plan: ClinicPlan,
   redirectUrl: string
 ): Promise<ApiResponse<PaymentLinkResponse>> {
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/super-function`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          clinicId,
-          clinicName,
-          plan,
-          redirectUrl,
-        }),
-      }
+    const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>(
+      'super-function',
+      { body: { plan, redirectUrl } }
     )
 
-    const data: EdgeFunctionResponse = await response.json()
+    if (error) {
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
+      return { data: null, error: body?.error ?? error.message }
+    }
 
-    if (!data.success) {
-      return {
-        data: null,
-        error: data.error || 'Failed to create payment link',
-      }
+    if (!data?.success) {
+      return { data: null, error: data?.error || 'Failed to create payment link' }
     }
 
     return {
