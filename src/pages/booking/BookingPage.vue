@@ -289,7 +289,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { clinicService } from '@/services/clinic.service'
-import { patientService } from '@/services/patient.service'
 import { appointmentService } from '@/services/appointment.service'
 import { branchService } from '@/services/branch.service'
 import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, Branch, ServiceCategory } from '@/types'
@@ -396,29 +395,13 @@ async function handleBooking() {
   saving.value = true
   errorMsg.value = ''
 
-  // Pass branch_id so the patient is linked to the correct branch
-  const { data: patient, error: patientError } = await patientService.findOrCreate(
-    clinic.value.id,
-    {
-      full_name: form.value.full_name,
-      contact_number: form.value.contact_number,
-      email: form.value.email.trim() || undefined,
-      branch_id: branch.value?.id ?? undefined,
-    },
-    { plan: getEffectivePlan(clinic.value) }
-  )
-
-  if (patientError || !patient) {
-    errorMsg.value = patientError ?? 'Could not register patient'
-    saving.value = false
-    return
-  }
-
-  // Pass branch_id so the appointment lands in the correct branch
-  const { error: apptError } = await appointmentService.createPublic({
+  // One server call: finds/creates the patient, checks plan limits, creates the appointment
+  const { error: apptError } = await appointmentService.bookPublic({
     clinic_id: clinic.value.id,
     branch_id: branch.value?.id ?? undefined,
-    patient_id: patient.id,
+    full_name: form.value.full_name,
+    contact_number: form.value.contact_number,
+    email: form.value.email.trim() || undefined,
     appointment_date: form.value.appointment_date,
     time_slot: form.value.time_slot || undefined,
     doctor_id: showDoctorSelect.value && form.value.doctor_id ? form.value.doctor_id : undefined,
@@ -444,13 +427,13 @@ onMounted(async () => {
 
     // If a branch slug was in the URL, resolve it to a real branch row
     if (branchSlug) {
-      const { data: branchData } = await branchService.getBySlug(data.id, branchSlug)
+      const { data: branchData } = await branchService.getPublicBySlug(data.id, branchSlug)
       branch.value = branchData ?? null
     }
 
     const ep = getEffectivePlan(data)
     if ((ep === 'pro' || ep === 'premium') && settings.value?.booking_mode !== 'auto_assign') {
-      doctors.value = await appointmentService.getDoctors(data.id)
+      doctors.value = await appointmentService.getPublicDoctors(data.id)
     }
   }
   loading.value = false

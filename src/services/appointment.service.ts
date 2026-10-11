@@ -198,26 +198,50 @@ export const appointmentService = {
     return count ?? 0;
   },
 
-  async createPublic(data: {
+  // Public booking: one server call finds/creates the patient, enforces plan
+  // limits and creates the appointment. Anonymous visitors never touch tables.
+  async bookPublic(data: {
     clinic_id: string;
     branch_id?: string;
-    patient_id: string;
+    full_name: string;
+    contact_number: string;
+    email?: string;
     appointment_date: string;
     time_slot?: string;
     doctor_id?: string;
     service_category?: string;
     service_name?: string;
     notes?: string;
-  }): Promise<ApiResponse<Appointment>> {
-    const { data: appt, error } = await supabase
-      .from("appointments")
-      .insert({ ...data, status: "confirmed" })
-      .select()
-      .single();
+  }): Promise<ApiResponse<{ appointment_id: string }>> {
+    const { data: appointmentId, error } = await supabase.rpc(
+      "book_public_appointment",
+      {
+        p_clinic_id: data.clinic_id,
+        p_branch_id: data.branch_id ?? null,
+        p_full_name: data.full_name,
+        p_contact_number: data.contact_number,
+        p_email: data.email ?? null,
+        p_appointment_date: data.appointment_date,
+        p_time_slot: data.time_slot ?? null,
+        p_doctor_id: data.doctor_id ?? null,
+        p_service_category: data.service_category ?? null,
+        p_service_name: data.service_name ?? null,
+        p_notes: data.notes ?? null,
+      },
+    );
 
     if (error) return { data: null, error: error.message };
-    if (appt) await maybeSendConfirmationEmail(appt.id, "confirmed");
-    return { data: appt, error: null };
+    await maybeSendConfirmationEmail(appointmentId as string, "confirmed");
+    return { data: { appointment_id: appointmentId as string }, error: null };
+  },
+
+  async getPublicDoctors(clinicId: string) {
+    const { data, error } = await supabase.rpc("get_public_doctors", {
+      p_clinic_id: clinicId,
+    });
+
+    if (error) return [];
+    return (data ?? []) as { id: string; full_name: string }[];
   },
 
   async getDoctors(clinicId: string) {

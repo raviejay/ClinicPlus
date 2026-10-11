@@ -46,19 +46,18 @@ export const branchService = {
   },
 
   /** Look up a branch by its slug within a clinic — used by the public booking page */
-  async getBySlug(
+  async getPublicBySlug(
     clinicId: string,
     branchSlug: string,
   ): Promise<ApiResponse<Branch>> {
-    const { data, error } = await supabase
-      .from("branches")
-      .select("*")
-      .eq("clinic_id", clinicId)
-      .eq("slug", branchSlug)
-      .single();
+    const { data, error } = await supabase.rpc("get_public_branch", {
+      p_clinic_id: clinicId,
+      p_slug: branchSlug,
+    });
 
     if (error) return { data: null, error: error.message };
-    return { data, error: null };
+    if (!data) return { data: null, error: "Branch not found" };
+    return { data: data as Branch, error: null };
   },
 
   async create(
