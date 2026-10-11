@@ -22,6 +22,8 @@ alter default privileges in schema public grant all on functions to anon, authen
 
 async function makeDb(files) {
   const db = new PGlite()
+  // Supabase databases run in UTC; don't inherit the developer machine's time zone
+  await db.exec("set time zone 'UTC'")
   await db.exec(BOOT)
   await db.exec(fs.readFileSync(path.join(repo, 'schema.sql'), 'utf8'))
   for (const f of files) await db.exec(fs.readFileSync(path.join(repo, 'migrations', f), 'utf8'))
