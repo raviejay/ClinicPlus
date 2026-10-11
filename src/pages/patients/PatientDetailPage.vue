@@ -211,7 +211,9 @@
                   </thead>
                   <tbody>
                     <tr v-for="p in payments" :key="p.id" class="border-b border-gray-50 last:border-0">
-                      <td class="py-2.5 font-semibold text-slate-800">{{ formatDateTime(p.paid_at) }}</td>
+                      <td class="py-2.5 font-semibold text-slate-800">{{ formatDateTime(p.paid_at) }}
+                        <span v-if="p.receipt_number" class="block text-[10px] font-mono font-normal text-slate-400">{{ p.receipt_number }}<template v-if="p.description"> · {{ p.description }}</template></span>
+                      </td>
                       <td class="py-2.5 text-slate-800 font-semibold">₱{{ Number(p.amount).toLocaleString() }}</td>
                       <td class="py-2.5 text-slate-500 uppercase text-xs font-semibold">{{ p.payment_method }}</td>
                       <td class="py-2.5">

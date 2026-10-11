@@ -111,7 +111,8 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
 ]
 export type PaymentMethod = 'cash' | 'gcash' | 'maya' | 'card' | 'other'
-export type PaymentStatus = 'paid' | 'refunded' | 'pending'
+// 'voided' = entered by mistake; 'refunded' = money given back after a valid payment
+export type PaymentStatus = 'paid' | 'refunded' | 'pending' | 'voided'
 export type Gender = 'male' | 'female' | 'other'
 export type ClinicLayout = 'layout_a' | 'layout_b' | 'layout_c' | 'layout_d'
 
@@ -247,6 +248,18 @@ export interface Payment {
   status: PaymentStatus
   paid_at: string
   created_at: string
+  /** What the payment was for, e.g. the service */
+  description: string | null
+  notes: string | null
+  /** GCash / Maya / card reference number */
+  reference: string | null
+  /** Per-clinic sequential number, e.g. R-000123 */
+  receipt_number: string | null
+  recorded_by: string | null
+  /** Why it was refunded or voided */
+  status_reason: string | null
+  status_changed_at: string | null
+  status_changed_by: string | null
 }
 
 // Auth

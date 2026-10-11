@@ -262,6 +262,8 @@ import { patientService } from '@/services/patient.service'
 import { appointmentService } from '@/services/appointment.service'
 import { queueService } from '@/services/queue.service'
 import { paymentService } from '@/services/payment.service'
+import { addDays, manilaToday } from '@/utils/booking'
+import { fillDaily } from '@/utils/revenue'
 import { Chart, registerables } from 'chart.js'
 import type { Appointment } from '@/types'
 
@@ -588,34 +590,33 @@ const planFeatures = [
 async function loadStats() {
   if (!authStore.clinic?.id) return
   const clinicId = authStore.clinic.id
-  const todayDate = new Date().toISOString().split('T')[0]
+  const today = manilaToday()
+  const yearRange = { from: addDays(today, -364), to: today }
 
-  const [patientCount, apptCount, queueCount, revSummary, apptList] = await Promise.all([
+  // Two revenue calls (today, and the last 365 days by day) instead of one per day
+  const [patientCount, apptCount, queueCount, todayReport, apptList, yearReport] = await Promise.all([
     patientService.getCount(clinicId),
     appointmentService.getTodayCount(clinicId),
     queueService.getWaitingCount(clinicId),
-    paymentService.getSummary(clinicId, todayDate),
+    paymentService.getReport({ from: today, to: today }),
     appointmentService.getToday(clinicId),
+    paymentService.getReport(yearRange),
   ])
+
+  const byMethod = { cash: 0, gcash: 0, maya: 0, card: 0, other: 0 }
+  for (const m of todayReport.data?.by_method ?? []) byMethod[m.method] = Number(m.amount)
 
   stats.value.patients          = patientCount
   stats.value.todayAppointments = apptCount
   stats.value.queueToday        = queueCount
-  stats.value.todayRevenue      = revSummary.total
-  stats.value.todayPaymentCount = revSummary.count
-  stats.value.byMethod          = revSummary.byMethod
+  stats.value.todayRevenue      = Number(todayReport.data?.totals.net ?? 0)
+  stats.value.todayPaymentCount = todayReport.data?.totals.count ?? 0
+  stats.value.byMethod          = byMethod
   todayAppointments.value       = (apptList.data as any) ?? []
   loadingAppts.value            = false
 
-  // Fetch last 365 days in parallel so all period views are available instantly
-  const days365 = Array.from({ length: 365 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (364 - i))
-    return d.toISOString().split('T')[0]
-  })
-
-  const results = await Promise.all(days365.map(date => paymentService.getSummary(clinicId, date)))
-  cachedDailyData.value = days365.map((date, i) => ({ date, total: results[i].total }))
+  // Every day in the year (zero where nothing was paid) so all period views are available instantly
+  cachedDailyData.value = fillDaily(yearRange, yearReport.data?.daily ?? []).map(d => ({ date: d.date, total: d.amount }))
 
   // periodRevenue is now computed reactively — just render chart
   const { labels, data } = getChartDataForPeriod(chartPeriod.value)

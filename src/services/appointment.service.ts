@@ -1,3 +1,4 @@
+import { manilaToday } from "@/utils/booking";
 import { supabase } from "./supabase";
 import type { Appointment, ApiResponse, Queue } from "@/types";
 import { useBranchFilter } from "@/composables/useBranchFilter";
@@ -110,7 +111,7 @@ export const appointmentService = {
       })[]
     >
   > {
-    const today = new Date().toISOString().split("T")[0];
+    const today = manilaToday();
     return this.getAll(clinicId, { date: today });
   },
 
@@ -186,7 +187,7 @@ export const appointmentService = {
 
   async getTodayCount(clinicId: string): Promise<number> {
     const { buildBranchFilter } = useBranchFilter();
-    const today = new Date().toISOString().split("T")[0];
+    const today = manilaToday();
     let query = supabase
       .from("appointments")
       .select("*", { count: "exact", head: true })
