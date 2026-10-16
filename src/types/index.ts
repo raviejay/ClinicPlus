@@ -131,6 +131,9 @@ export interface Clinic {
   name: string
   slug: string
   email: string | null
+  /** Street address, shown on the booking page and printed on documents */
+  address?: string | null
+  phone?: string | null
   plan: ClinicPlan
   status?: ClinicStatus
   is_trial: boolean

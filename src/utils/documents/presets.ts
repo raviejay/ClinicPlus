@@ -20,7 +20,8 @@ export interface PresetOptions {
 }
 
 const GRAY = '#64748b'
-const LETTERHEAD_PLACEHOLDER = '123 Your Street, City\nTel. (02) 0000 0000 • you@clinic.ph'
+// Filled in from Settings (address and phone); a line with nothing to show is left out
+const LETTERHEAD_PLACEHOLDER = '{clinic_address}\n{clinic_phone_line}'
 
 function certificateBody(style: PresetStyle, accent: string, W: number, H: number): DocElement[] {
   const left = 20

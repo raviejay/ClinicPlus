@@ -207,6 +207,8 @@ const values = computed(() => {
     {
       clinicName: auth.clinic?.name ?? 'Clinic',
       clinicEmail: auth.clinic?.email ?? null,
+      clinicAddress: auth.clinic?.address ?? null,
+      clinicPhone: auth.clinic?.phone ?? null,
       branch: branchStore.branches.find(b => b.id === p?.branch_id) ?? null,
       patient: p ?? { full_name: 'Patient name' },
       doctorName: doctorName.value || 'Doctor name',

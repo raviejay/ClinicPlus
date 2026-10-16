@@ -1,0 +1,40 @@
+// Clinic address and phone: editable by the clinic's admin, public on the booking page, email stays private.
+const fs = require('fs')
+const path = require('path')
+const { makeDb, as, check, summary } = require('./harness.cjs')
+const { ids, seed } = require('./seed.cjs')
+const MIGS = fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter(f => f.endsWith('.sql')).sort()
+
+;(async () => {
+  const db = await makeDb(MIGS)
+  await seed(db, { planA: 'pro' })
+  const adminA = { uid: ids.adminA }, staffA = { uid: ids.staffA }, adminB = { uid: ids.adminB }, sup = { uid: ids.sup }
+
+  console.log('clinic address and phone')
+  let r = await as(db, adminA, `update clinics set address = '123 Rizal St, Quezon City', phone = '(02) 8123 4567' where id='${ids.clinicA}' returning address, phone`)
+  check('an admin can set the address and phone', r.rows[0]?.address === '123 Rizal St, Quezon City' && r.rows[0]?.phone === '(02) 8123 4567', r.error)
+  r = await as(db, staffA, `update clinics set address = 'Hacked' where id='${ids.clinicA}'`)
+  check('staff cannot change them', (await db.query(`select address from clinics where id='${ids.clinicA}'`)).rows[0].address === '123 Rizal St, Quezon City')
+  r = await as(db, adminB, `update clinics set address = 'Hacked' where id='${ids.clinicA}'`)
+  check("another clinic's admin cannot change them", (await db.query(`select address from clinics where id='${ids.clinicA}'`)).rows[0].address === '123 Rizal St, Quezon City')
+  r = await as(db, adminA, `update clinics set address = repeat('x', 251) where id='${ids.clinicA}'`)
+  check('an address over 250 characters is refused', !!r.error)
+  r = await as(db, adminA, `update clinics set phone = repeat('9', 41) where id='${ids.clinicA}'`)
+  check('a phone over 40 characters is refused', !!r.error)
+  r = await as(db, adminA, `update clinics set address = null, phone = null where id='${ids.clinicA}'`)
+  check('they can be cleared', !r.error, r.error)
+  await as(db, adminA, `update clinics set address = '123 Rizal St', phone = '0917 000 0000' where id='${ids.clinicA}'`)
+  r = await as(db, adminA, `update clinics set plan = 'premium', address = 'New address' where id='${ids.clinicA}'`)
+  check('the billing guard still blocks plan changes in the same update', /billing/.test(r.error || ''), r.error)
+
+  console.log('public booking page')
+  r = await as(db, 'anon', `select get_public_clinic('clinic-a') as c`)
+  check('the public clinic includes the address and phone', r.rows[0].c.address === '123 Rizal St' && r.rows[0].c.phone === '0917 000 0000', JSON.stringify(r.rows[0]?.c))
+  check('the email is still hidden', r.rows[0].c.email === null)
+  check('branding and settings still come with it', !!r.rows[0].c.clinic_branding && !!r.rows[0].c.clinic_settings)
+  check('anon cannot read the clinics table directly', (await as(db, 'anon', 'select address from clinics')).rows.length === 0)
+  r = await as(db, sup, `update clinics set address = 'By super admin' where id='${ids.clinicA}' returning address`)
+  check('a super admin can edit them too', r.rows[0]?.address === 'By super admin', r.error)
+
+  summary()
+})().catch(e => { console.error(e); process.exit(1) })

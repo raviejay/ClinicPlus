@@ -22,6 +22,9 @@ const RX: DocKind[] = ['prescription']
 export const PLACEHOLDERS: PlaceholderDef[] = [
   { key: 'clinic_name',   label: 'Clinic name',        group: 'Clinic', kinds: BOTH, sample: 'Sunrise Family Clinic' },
   { key: 'clinic_email',  label: 'Clinic email',       group: 'Clinic', kinds: BOTH, sample: 'hello@sunriseclinic.ph' },
+  { key: 'clinic_address', label: 'Clinic address',     group: 'Clinic', kinds: BOTH, sample: '123 Rizal Street, Quezon City', hint: 'The branch address when issued for a branch' },
+  { key: 'clinic_phone',  label: 'Clinic phone',       group: 'Clinic', kinds: BOTH, sample: '(02) 8123 4567', hint: 'The branch phone when issued for a branch' },
+  { key: 'clinic_phone_line', label: 'Phone with "Tel."', group: 'Clinic', kinds: BOTH, sample: 'Tel. (02) 8123 4567', hint: 'Left out when empty' },
   { key: 'branch_name',   label: 'Branch name',        group: 'Clinic', kinds: BOTH, sample: 'Main Branch', hint: 'Empty for the main clinic' },
   { key: 'branch_address', label: 'Branch address',    group: 'Clinic', kinds: BOTH, sample: '123 Rizal Street, Quezon City', hint: 'Empty for the main clinic' },
   { key: 'branch_phone',  label: 'Branch phone',       group: 'Clinic', kinds: BOTH, sample: '(02) 8123 4567', hint: 'Empty for the main clinic' },
@@ -151,6 +154,8 @@ export const PURPOSES: Record<string, string> = {
 export interface ValueContext {
   clinicName: string
   clinicEmail?: string | null
+  clinicAddress?: string | null
+  clinicPhone?: string | null
   branch?: { name: string; address: string | null; contact_number: string | null } | null
   patient: {
     full_name: string
@@ -187,9 +192,16 @@ export function buildValues(
   const sex = p.gender ? SEX[p.gender] ?? '' : ''
   const ageSex = [age, sex].filter(Boolean).join(', ')
 
+  // A branch's own address and phone win over the clinic's
+  const address = trim(ctx.branch?.address) || trim(ctx.clinicAddress)
+  const phone = trim(ctx.branch?.contact_number) || trim(ctx.clinicPhone)
+
   const values: Record<string, string> = {
     clinic_name: ctx.clinicName,
     clinic_email: trim(ctx.clinicEmail),
+    clinic_address: address,
+    clinic_phone: phone,
+    clinic_phone_line: phone ? `Tel. ${phone}` : '',
     branch_name: trim(ctx.branch?.name),
     branch_address: trim(ctx.branch?.address),
     branch_phone: trim(ctx.branch?.contact_number),

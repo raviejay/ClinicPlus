@@ -26,6 +26,17 @@
               class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
           </div>
           <div>
+            <label for="clinic-address" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Address</label>
+            <input id="clinic-address" v-model="form.address" type="text" maxlength="250" placeholder="e.g. 123 Rizal Street, Quezon City"
+              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
+            <p class="text-xs text-slate-400 mt-1.5">Shown on your booking page with a map, and printed on documents.</p>
+          </div>
+          <div>
+            <label for="clinic-phone" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Phone</label>
+            <input id="clinic-phone" v-model="form.phone" type="tel" maxlength="40" placeholder="e.g. (02) 8123 4567"
+              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
+          </div>
+          <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug</label>
             <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-slate-50">
               <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">{{ appOrigin }}/book/</span>
@@ -335,6 +346,8 @@ const errorMsg = ref('')
 const form = ref({
   name: authStore.clinic?.name ?? '',
   email: authStore.clinic?.email ?? '',
+  address: authStore.clinic?.address ?? '',
+  phone: authStore.clinic?.phone ?? '',
   slug: authStore.clinic?.slug ?? '',
 })
 
@@ -368,7 +381,14 @@ async function saveSettings() {
 
   const [clinicRes, settingsRes] = await Promise.all([
     supabase.from('clinics')
-      .update({ name: form.value.name, email: form.value.email, slug: form.value.slug })
+      .update({
+        name: form.value.name,
+        email: form.value.email,
+        // Blank means "none", not an empty string
+        address: form.value.address.trim() || null,
+        phone: form.value.phone.trim() || null,
+        slug: form.value.slug,
+      })
       .eq('id', clinicId),
     supabase.from('clinic_settings')
       .update({

@@ -6,6 +6,7 @@ import {
 import { PRESET_STYLES, presetLayout } from './presets'
 import { sanitizeLayout } from './sanitize'
 import { renderPageHtml } from './render'
+import { fillPlaceholders } from './placeholders'
 import { createElement, duplicateElement, elementTitle, nextId } from './elements'
 import {
   alignRect, clampOnPage, moveRect, nudgeRect, resizeRect, snap, snapToGuides, type Rect,
@@ -68,6 +69,39 @@ describe('values for a medical certificate', () => {
   it('ignores zero or negative rest days', () => {
     expect(buildValues('medcert', ctx, { ...form, restDays: 0 }).rest_days_sentence).toBe('')
     expect(buildValues('medcert', ctx, { ...form, restDays: -2 }).rest_days_sentence).toBe('')
+  })
+})
+
+describe('clinic address and phone on documents', () => {
+  const form = { date: '2026-10-12', purpose: '', diagnosis: '', remarks: '', restDays: '', validUntil: '' }
+
+  it('fills in the clinic address and a "Tel." line', () => {
+    const v = buildValues('medcert', { ...ctx, clinicAddress: '123 Rizal St', clinicPhone: '(02) 8123 4567' }, form)
+    expect(v.clinic_address).toBe('123 Rizal St')
+    expect(v.clinic_phone).toBe('(02) 8123 4567')
+    expect(v.clinic_phone_line).toBe('Tel. (02) 8123 4567')
+  })
+  it("prefers the branch's own address and phone", () => {
+    const v = buildValues('medcert', {
+      ...ctx, clinicAddress: 'Main office', clinicPhone: '111',
+      branch: { name: 'North', address: 'North branch road', contact_number: '222' },
+    }, form)
+    expect(v.clinic_address).toBe('North branch road')
+    expect(v.clinic_phone).toBe('222')
+  })
+  it('falls back to the clinic when the branch has none', () => {
+    const v = buildValues('medcert', { ...ctx, clinicAddress: 'Main office', branch: { name: 'North', address: null, contact_number: '  ' } }, form)
+    expect(v.clinic_address).toBe('Main office')
+  })
+  it('leaves them empty, so a letterhead line disappears, when nothing is set', () => {
+    const v = buildValues('medcert', ctx, form)
+    expect(v.clinic_address).toBe('')
+    expect(v.clinic_phone_line).toBe('')
+    expect(fillPlaceholders('{clinic_address}\n{clinic_phone_line}', v)).toBe('')
+  })
+  it('the preset letterheads use them', () => {
+    const header = presetLayout('medcert', 'classic').elements.find(e => e.id === 'contact') as any
+    expect(header.content).toBe('{clinic_address}\n{clinic_phone_line}')
   })
 })
 
