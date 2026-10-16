@@ -21,7 +21,7 @@
           <span v-if="dirty" class="shrink-0 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2.5 py-1">Unsaved changes</span>
         </div>
 
-        <div class="p-5 grid gap-5 lg:grid-cols-[1fr_20rem]">
+        <div class="p-5 space-y-6">
           <div class="space-y-4">
             <div>
               <label for="clinic-name" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Clinic Name <span class="text-red-400">*</span></label>
@@ -48,7 +48,7 @@
               <label for="clinic-address" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Address</label>
               <input id="clinic-address" v-model="form.address" type="text" maxlength="250" placeholder="e.g. 123 Rizal Street, Quezon City"
                 autocomplete="street-address" :class="[inputBase, 'border-gray-200']" />
-              <p class="text-xs text-slate-400 mt-1.5">Include the street, city and a landmark so the map pins the right place.</p>
+              <p class="text-xs text-slate-400 mt-1.5">Shown as text on your booking page and printed on documents. Pin the exact spot on the map below.</p>
             </div>
             <div>
               <label for="clinic-slug" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug <span class="text-red-400">*</span></label>
@@ -66,17 +66,14 @@
             </div>
           </div>
 
-          <!-- What patients will see -->
+          <!-- Exact location: pinned on the map, not typed -->
           <div>
-            <p class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Map preview</p>
-            <div v-if="form.address.trim()" class="relative rounded-xl overflow-hidden border border-gray-200 bg-slate-100 h-48 lg:h-56">
-              <iframe :src="mapEmbedUrl(mapQuery)" title="Map preview of your address" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                class="absolute inset-0 w-full h-full border-0"></iframe>
-            </div>
-            <div v-else class="rounded-xl border border-dashed border-gray-200 bg-slate-50 h-48 lg:h-56 flex flex-col items-center justify-center text-center px-4">
-              <span class="material-icons text-slate-300 text-3xl mb-1">map</span>
-              <p class="text-xs text-slate-400">Add your address to see where patients will be directed.</p>
-            </div>
+            <p class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Pin your clinic on the map</p>
+            <p class="text-xs text-slate-400 mb-3">
+              Search for your street, then tap the map (or drag the pin) to mark the exact entrance. Patients see this spot on your
+              booking page and "Navigate" takes them straight to it.
+            </p>
+            <LocationPicker v-model:lat="form.latitude" v-model:lng="form.longitude" @use-address="form.address = $event.slice(0, 250)" />
           </div>
         </div>
       </div>
@@ -356,7 +353,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { isValidEmail, mapEmbedUrl } from '@/utils/booking'
+import { isValidEmail } from '@/utils/booking'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
 import { useBranchStore } from '@/stores/branch'
@@ -364,6 +361,7 @@ import { supabase } from '@/services/supabase'
 import { clinicServicesService } from '@/services/clinic-services.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import BookingLinkCard from '@/components/BookingLinkCard.vue'
+import LocationPicker from './LocationPicker.vue'
 import type { ClinicService, Branch } from '@/types'
 
 const authStore = useAuthStore()
@@ -384,6 +382,8 @@ const form = ref({
   email: authStore.clinic?.email ?? '',
   address: authStore.clinic?.address ?? '',
   phone: authStore.clinic?.phone ?? '',
+  latitude: (authStore.clinic?.latitude ?? null) as number | null,
+  longitude: (authStore.clinic?.longitude ?? null) as number | null,
   slug: authStore.clinic?.slug ?? '',
 })
 
@@ -405,13 +405,13 @@ const fieldErrors = computed(() => ({
 const hasErrors = computed(() => Object.values(fieldErrors.value).some(Boolean))
 
 const slugChanged = computed(() => !!authStore.clinic?.slug && form.value.slug !== authStore.clinic.slug)
-const mapQuery = computed(() => `${form.value.name.trim()}, ${form.value.address.trim()}`)
 
 const dirty = computed(() => {
   const c = authStore.clinic
   return form.value.name !== (c?.name ?? '') || form.value.email !== (c?.email ?? '') ||
     form.value.address !== (c?.address ?? '') || form.value.phone !== (c?.phone ?? '') ||
-    form.value.slug !== (c?.slug ?? '')
+    form.value.slug !== (c?.slug ?? '') ||
+    (form.value.latitude ?? null) !== (c?.latitude ?? null) || (form.value.longitude ?? null) !== (c?.longitude ?? null)
 })
 
 async function copyBookingLink() {
@@ -462,6 +462,8 @@ async function saveSettings() {
         // Blank means "none", not an empty string
         address: form.value.address.trim() || null,
         phone: form.value.phone.trim() || null,
+        latitude: form.value.latitude,
+        longitude: form.value.longitude,
         slug: form.value.slug,
       })
       .eq('id', clinicId),

@@ -136,6 +136,9 @@ export interface Clinic {
   /** Street address, shown on the booking page and printed on documents */
   address?: string | null
   phone?: string | null
+  /** Exact spot pinned on the map in Settings */
+  latitude?: number | null
+  longitude?: number | null
   plan: ClinicPlan
   status?: ClinicStatus
   is_trial: boolean

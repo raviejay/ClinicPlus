@@ -138,6 +138,20 @@ describe('bookingLocation', () => {
     const loc = bookingLocation(clinic, { name: 'North', address: null, contact_number: '' })
     expect(loc.address).toBe('123 Rizal St, QC')
   })
+  it('points the map at the pinned spot when the clinic has one', () => {
+    const loc = bookingLocation({ ...clinic, latitude: 14.5995, longitude: 120.9842 }, null)
+    expect(loc.mapQuery).toBe('14.5995,120.9842')
+    expect(loc.address).toBe('123 Rizal St, QC')
+  })
+  it('treats a pin alone as a location even without an address', () => {
+    const loc = bookingLocation({ name: 'Sunrise Clinic', latitude: 14.5, longitude: 121 }, null)
+    expect(loc.hasAddress).toBe(true)
+    expect(loc.mapQuery).toBe('14.5,121')
+  })
+  it("uses a branch's own address instead of the clinic's pin", () => {
+    const loc = bookingLocation({ ...clinic, latitude: 14.5995, longitude: 120.9842 }, { name: 'North', address: 'Commonwealth Ave' })
+    expect(loc.mapQuery).toBe('Sunrise Clinic, Commonwealth Ave')
+  })
   it('searches by the clinic name when there is no address at all', () => {
     const loc = bookingLocation({ name: 'Sunrise Clinic' }, null)
     expect(loc.hasAddress).toBe(false)

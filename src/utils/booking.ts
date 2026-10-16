@@ -193,19 +193,22 @@ export interface LocationInfo {
 }
 
 export function bookingLocation(
-  clinic: { name: string; address?: string | null; phone?: string | null },
+  clinic: { name: string; address?: string | null; phone?: string | null; latitude?: number | null; longitude?: number | null },
   branch: { name: string; address?: string | null; contact_number?: string | null } | null,
 ): LocationInfo {
   const address = branch?.address?.trim() || clinic.address?.trim() || ''
   const phone = branch?.contact_number?.trim() || clinic.phone?.trim() || ''
   const name = branch ? `${clinic.name} — ${branch.name}` : clinic.name
+  // The clinic's pinned spot is exact; a branch with its own address takes over from it
+  const pinned = !branch?.address?.trim() && clinic.latitude != null && clinic.longitude != null
+    ? `${clinic.latitude},${clinic.longitude}` : ''
   return {
     name,
     address,
     phone,
     // With an address the search is precise; without one the clinic's name is the best we have
-    mapQuery: address ? `${clinic.name}, ${address}` : `${clinic.name}, Philippines`,
-    hasAddress: !!address,
+    mapQuery: pinned || (address ? `${clinic.name}, ${address}` : `${clinic.name}, Philippines`),
+    hasAddress: !!address || !!pinned,
   }
 }
 

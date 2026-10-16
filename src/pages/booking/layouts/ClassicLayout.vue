@@ -12,7 +12,7 @@
           <h1 class="font-black text-slate-900 text-base leading-tight truncate">{{ ctx.clinic.name }}</h1>
           <p class="text-xs text-slate-400 truncate">{{ ctx.branch ? ctx.branch.name + ' · ' : '' }}Online Appointment Booking</p>
         </div>
-        <a v-if="ctx.location.address" :href="directionsUrl(ctx.location.mapQuery)" target="_blank" rel="noopener"
+        <a v-if="ctx.location.hasAddress" :href="directionsUrl(ctx.location.mapQuery)" target="_blank" rel="noopener"
           class="ml-auto shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-full border transition-colors hover:bg-slate-50"
           :style="{ color: ctx.primaryColor, borderColor: ctx.primaryColor + '40' }">
           <span class="material-icons text-[16px]">near_me</span><span class="hidden sm:inline">Navigate</span>
