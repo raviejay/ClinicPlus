@@ -8,14 +8,14 @@ vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ clinic: { id: 'c1', nam
 vi.mock('@/composables/useQueueRealtime', async () => {
   const { ref } = await import('vue')
   const person = (name: string) => ({
-    id: name, queue_number: 7, status: 'in_consultation', patients: { full_name: name, contact_number: '0917 555 1234' }, profiles: null,
+    id: name, priority_number: 7, status: 'now_serving', patients: { full_name: name, contact_number: '0917 555 1234' }, profiles: null,
   })
   queue.state = {
     loading: ref(false),
     waiting: ref([{ ...person('Waiting Wendy'), status: 'waiting' }]),
     nowServing: ref(person('Serving Sam')),
-    done: ref([{ ...person('Done Dina'), status: 'completed' }]),
-    counts: ref({ waiting: 1, serving: 1, done: 1 }),
+    done: ref([{ ...person('Done Dina'), status: 'done' }]),
+    counts: ref({ waiting: 1, now_serving: 1, done: 1 }),
     loadQueue: vi.fn(), subscribe: vi.fn(),
   }
   return { useQueueRealtime: () => queue.state }
