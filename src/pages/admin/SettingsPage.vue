@@ -12,36 +12,70 @@
       </div>
 
       <!-- Clinic info -->
-      <div class="bg-white border border-gray-200 rounded-xl p-5">
-        <h2 class="text-sm font-bold text-slate-900 mb-4">Clinic Information</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Clinic Name</label>
-            <input v-model="form.name" type="text"
-              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-slate-50 flex items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <h2 class="text-sm font-bold text-slate-900">Clinic Information</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Shown to patients on your booking page and printed on your documents.</p>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Email</label>
-            <input v-model="form.email" type="email"
-              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
+          <span v-if="dirty" class="shrink-0 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2.5 py-1">Unsaved changes</span>
+        </div>
+
+        <div class="p-5 grid gap-5 lg:grid-cols-[1fr_20rem]">
+          <div class="space-y-4">
+            <div>
+              <label for="clinic-name" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Clinic Name <span class="text-red-400">*</span></label>
+              <input id="clinic-name" v-model="form.name" type="text" maxlength="120" autocomplete="organization"
+                :class="[inputBase, fieldErrors.name ? 'border-red-300' : 'border-gray-200']" />
+              <p v-if="fieldErrors.name" class="text-xs text-red-500 mt-1.5">{{ fieldErrors.name }}</p>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="clinic-email" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Email</label>
+                <input id="clinic-email" v-model="form.email" type="email" autocomplete="email"
+                  :class="[inputBase, fieldErrors.email ? 'border-red-300' : 'border-gray-200']" />
+                <p v-if="fieldErrors.email" class="text-xs text-red-500 mt-1.5">{{ fieldErrors.email }}</p>
+                <p v-else class="text-xs text-slate-400 mt-1.5">Kept private. Patients never see it.</p>
+              </div>
+              <div>
+                <label for="clinic-phone" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Phone</label>
+                <input id="clinic-phone" v-model="form.phone" type="tel" maxlength="40" placeholder="e.g. (02) 8123 4567" autocomplete="tel"
+                  :class="[inputBase, 'border-gray-200']" />
+                <p class="text-xs text-slate-400 mt-1.5">Patients can tap it to call.</p>
+              </div>
+            </div>
+            <div>
+              <label for="clinic-address" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Address</label>
+              <input id="clinic-address" v-model="form.address" type="text" maxlength="250" placeholder="e.g. 123 Rizal Street, Quezon City"
+                autocomplete="street-address" :class="[inputBase, 'border-gray-200']" />
+              <p class="text-xs text-slate-400 mt-1.5">Include the street, city and a landmark so the map pins the right place.</p>
+            </div>
+            <div>
+              <label for="clinic-slug" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug <span class="text-red-400">*</span></label>
+              <div :class="['flex items-center border rounded-xl overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-sky-400', fieldErrors.slug ? 'border-red-300' : 'border-gray-200']">
+                <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">{{ appOrigin }}/book/</span>
+                <input id="clinic-slug" v-model="form.slug" type="text" maxlength="60" autocapitalize="none" spellcheck="false"
+                  class="flex-1 min-w-0 px-3 py-3 text-sm text-sky-600 font-mono bg-transparent focus:outline-none" />
+                <button type="button" @click="copyBookingLink" aria-label="Copy booking link"
+                  class="px-3 py-3 text-slate-400 hover:text-sky-600 border-l border-gray-200 transition-colors">
+                  <span class="material-icons text-[18px]">{{ copied ? 'check' : 'content_copy' }}</span>
+                </button>
+              </div>
+              <p v-if="fieldErrors.slug" class="text-xs text-red-500 mt-1.5">{{ fieldErrors.slug }}</p>
+              <p v-else-if="slugChanged" class="text-xs text-amber-600 mt-1.5">Changing this breaks links and QR codes you have already shared.</p>
+            </div>
           </div>
+
+          <!-- What patients will see -->
           <div>
-            <label for="clinic-address" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Address</label>
-            <input id="clinic-address" v-model="form.address" type="text" maxlength="250" placeholder="e.g. 123 Rizal Street, Quezon City"
-              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-            <p class="text-xs text-slate-400 mt-1.5">Shown on your booking page with a map, and printed on documents.</p>
-          </div>
-          <div>
-            <label for="clinic-phone" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Phone</label>
-            <input id="clinic-phone" v-model="form.phone" type="tel" maxlength="40" placeholder="e.g. (02) 8123 4567"
-              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Booking URL slug</label>
-            <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-slate-50">
-              <span class="px-3 py-3 text-xs text-slate-400 border-r border-gray-200 whitespace-nowrap">{{ appOrigin }}/book/</span>
-              <input v-model="form.slug" type="text"
-                class="flex-1 px-3 py-3 text-sm text-sky-600 font-mono bg-transparent focus:outline-none" />
+            <p class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Map preview</p>
+            <div v-if="form.address.trim()" class="relative rounded-xl overflow-hidden border border-gray-200 bg-slate-100 h-48 lg:h-56">
+              <iframe :src="mapEmbedUrl(mapQuery)" title="Map preview of your address" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                class="absolute inset-0 w-full h-full border-0"></iframe>
+            </div>
+            <div v-else class="rounded-xl border border-dashed border-gray-200 bg-slate-50 h-48 lg:h-56 flex flex-col items-center justify-center text-center px-4">
+              <span class="material-icons text-slate-300 text-3xl mb-1">map</span>
+              <p class="text-xs text-slate-400">Add your address to see where patients will be directed.</p>
             </div>
           </div>
         </div>
@@ -321,7 +355,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { isValidEmail, mapEmbedUrl } from '@/utils/booking'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
 import { useBranchStore } from '@/stores/branch'
@@ -340,6 +375,7 @@ const appOrigin = window.location.origin
 
 // ── Settings form ──────────────────────────────────────────
 const saving = ref(false)
+const copied = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
 
@@ -350,6 +386,41 @@ const form = ref({
   phone: authStore.clinic?.phone ?? '',
   slug: authStore.clinic?.slug ?? '',
 })
+
+const inputBase =
+  'w-full border rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent bg-slate-50 focus:bg-white transition-all'
+
+// Slugs are lowercase letters, numbers and single hyphens
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
+watch(() => form.value.slug, slug => {
+  const cleaned = slug.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  if (cleaned !== slug) form.value.slug = cleaned
+})
+
+const fieldErrors = computed(() => ({
+  name: form.value.name.trim().length < 2 ? 'Enter your clinic name' : '',
+  email: form.value.email.trim() && !isValidEmail(form.value.email.trim()) ? "That email doesn't look right" : '',
+  slug: !form.value.slug ? 'Choose a booking link' : !SLUG_PATTERN.test(form.value.slug) ? 'Use letters, numbers and single hyphens only' : '',
+}))
+const hasErrors = computed(() => Object.values(fieldErrors.value).some(Boolean))
+
+const slugChanged = computed(() => !!authStore.clinic?.slug && form.value.slug !== authStore.clinic.slug)
+const mapQuery = computed(() => `${form.value.name.trim()}, ${form.value.address.trim()}`)
+
+const dirty = computed(() => {
+  const c = authStore.clinic
+  return form.value.name !== (c?.name ?? '') || form.value.email !== (c?.email ?? '') ||
+    form.value.address !== (c?.address ?? '') || form.value.phone !== (c?.phone ?? '') ||
+    form.value.slug !== (c?.slug ?? '')
+})
+
+async function copyBookingLink() {
+  try {
+    await navigator.clipboard.writeText(`${appOrigin}/book/${form.value.slug}`)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  } catch { /* clipboard blocked: the link is shown beside the field anyway */ }
+}
 
 const settingsForm = ref({
   booking_mode: authStore.clinicSettings?.booking_mode ?? 'auto_assign',
@@ -373,6 +444,10 @@ function toggleSetting(key: string) {
 
 async function saveSettings() {
   if (!authStore.clinic?.id) return
+  if (hasErrors.value) {
+    errorMsg.value = Object.values(fieldErrors.value).find(Boolean) ?? ''
+    return
+  }
   saving.value = true
   errorMsg.value = ''
   successMsg.value = ''
@@ -382,8 +457,8 @@ async function saveSettings() {
   const [clinicRes, settingsRes] = await Promise.all([
     supabase.from('clinics')
       .update({
-        name: form.value.name,
-        email: form.value.email,
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
         // Blank means "none", not an empty string
         address: form.value.address.trim() || null,
         phone: form.value.phone.trim() || null,
@@ -404,7 +479,9 @@ async function saveSettings() {
   saving.value = false
 
   if (clinicRes.error || settingsRes.error) {
-    errorMsg.value = clinicRes.error?.message ?? settingsRes.error?.message ?? 'Failed to save.'
+    errorMsg.value = clinicRes.error?.code === '23505'
+      ? 'That booking link is already used by another clinic. Try a different one.'
+      : clinicRes.error?.message ?? settingsRes.error?.message ?? 'Failed to save.'
     return
   }
 

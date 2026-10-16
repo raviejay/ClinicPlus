@@ -39,7 +39,7 @@ const html = computed(() => renderPageHtml(safe.value, props.data, { clinicLogoU
 // Fit the page to the width available (a sensible size where there is no layout, e.g. in tests)
 const scale = computed(() => {
   const available = Math.min(hostWidth.value || 520, props.maxWidth ?? Infinity)
-  return Math.min(1.5, Math.max(0.2, available / pagePx.value.w))
+  return Math.min(1.5, Math.max(0.05, available / pagePx.value.w))
 })
 
 async function reportOverflow() {

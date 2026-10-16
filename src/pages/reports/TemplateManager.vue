@@ -87,7 +87,7 @@
           <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Starting point">
             <button v-for="p in PRESET_STYLES" :key="p.key" type="button" role="radio" :aria-checked="newStyle === p.key" @click="newStyle = p.key"
               :class="['rounded-xl border-2 p-2 text-left transition-colors', newStyle === p.key ? 'border-sky-400 bg-sky-50' : 'border-gray-100 hover:border-sky-200']">
-              <div class="bg-slate-100 rounded-md p-1.5 mb-1.5"><DocumentPreview :layout="presetFor(p.key)" :data="sampleFor(newKind)" :logo-url="logoUrl" :max-width="90" /></div>
+              <div class="bg-slate-100 rounded-md p-1.5 mb-1.5 overflow-hidden"><DocumentPreview :layout="presetFor(p.key)" :data="sampleFor(newKind)" :logo-url="logoUrl" :max-width="90" /></div>
               <span class="block text-xs font-bold text-slate-700 leading-tight">{{ p.label.split(' (')[0] }}</span></button>
           </div>
           <p class="text-[11px] text-slate-400 mt-1.5">{{ PRESET_STYLES.find(p => p.key === newStyle)?.description }}</p>
