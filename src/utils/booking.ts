@@ -155,3 +155,60 @@ export function downloadTextFile(filename: string, content: string, mime = 'text
   a.remove()
   URL.revokeObjectURL(url)
 }
+
+// ── Month calendar ──
+
+/** The weeks of a month (month is 1-12) as ISO dates, Sunday first, with null padding at both ends */
+export function monthMatrix(year: number, month: number): (string | null)[][] {
+  const first = new Date(Date.UTC(year, month - 1, 1))
+  const days = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const cells: (string | null)[] = Array(first.getUTCDay()).fill(null)
+  for (let d = 1; d <= days; d++) cells.push(`${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+  while (cells.length % 7 !== 0) cells.push(null)
+  const weeks: (string | null)[][] = []
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
+  return weeks
+}
+
+export function monthLabel(year: number, month: number): string {
+  return new Intl.DateTimeFormat('en-PH', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1, 1)))
+}
+
+/** Moves a year/month pair by whole months (delta may be negative) */
+export function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  const index = year * 12 + (month - 1) + delta
+  return { year: Math.floor(index / 12), month: (index % 12) + 1 }
+}
+
+// ── Where the clinic is ──
+
+export interface LocationInfo {
+  /** "Clinic" or "Clinic — Branch" */
+  name: string
+  address: string
+  phone: string
+  /** What to search on the map */
+  mapQuery: string
+  hasAddress: boolean
+}
+
+export function bookingLocation(
+  clinic: { name: string; address?: string | null; phone?: string | null },
+  branch: { name: string; address?: string | null; contact_number?: string | null } | null,
+): LocationInfo {
+  const address = branch?.address?.trim() || clinic.address?.trim() || ''
+  const phone = branch?.contact_number?.trim() || clinic.phone?.trim() || ''
+  const name = branch ? `${clinic.name} — ${branch.name}` : clinic.name
+  return {
+    name,
+    address,
+    phone,
+    // With an address the search is precise; without one the clinic's name is the best we have
+    mapQuery: address ? `${clinic.name}, ${address}` : `${clinic.name}, Philippines`,
+    hasAddress: !!address,
+  }
+}
+
+export const mapEmbedUrl = (query: string) => `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed&z=16`
+export const directionsUrl = (query: string) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`
+export const telUrl = (phone: string) => `tel:${phone.replace(/[^+\d]/g, '')}`

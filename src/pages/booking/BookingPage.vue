@@ -90,176 +90,14 @@
       </div>
     </div>
 
-    <!-- =================== LAYOUT A: Classic (all plans) =================== -->
-    <template v-else-if="activeLayout === 'layout_a'">
-      <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
-        <div class="max-w-lg mx-auto px-4 py-3.5 flex items-center gap-3">
-          <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
-            class="w-10 h-10 rounded-xl object-contain border border-gray-100 bg-white p-0.5 shadow-sm" />
-          <div v-else class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-sm"
-            :style="{ background: primaryColor }">
-            {{ clinic.name.charAt(0).toUpperCase() }}
-          </div>
-          <div>
-            <h1 class="font-black text-slate-900 text-sm leading-tight">{{ clinic.name }}</h1>
-            <p class="text-xs text-slate-400">{{ branch ? branch.name + ' · ' : '' }}Online Appointment Booking</p>
-          </div>
-        </div>
-      </header>
-
-      <!-- Progress indicator -->
-      <div class="bg-white border-b border-gray-100">
-        <div class="max-w-lg mx-auto px-4 py-2 flex items-center gap-1">
-          <div v-for="(step, i) in steps" :key="i"
-            :class="['flex items-center gap-1.5 text-xs font-semibold transition-colors',
-              i <= currentStep ? 'text-sky-600' : 'text-slate-300']">
-            <span :class="['w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border',
-              i < currentStep ? 'bg-sky-500 border-sky-500 text-white' :
-              i === currentStep ? 'border-sky-500 text-sky-500' : 'border-gray-200 text-slate-300']">
-              <span v-if="i < currentStep" class="material-icons text-[11px]">check</span>
-              <span v-else>{{ i + 1 }}</span>
-            </span>
-            <span class="hidden sm:inline">{{ step }}</span>
-            <span v-if="i < steps.length - 1" class="material-icons text-[14px] ml-1 text-slate-200">chevron_right</span>
-          </div>
-        </div>
-      </div>
-
-      <main class="flex-1 px-4 py-5">
-        <div class="max-w-lg mx-auto space-y-4">
-          <BookingForm v-bind="formProps" @update:selected-category="selectedCategory = $event" @book="handleBooking" @refresh="loadAvailability(true)" />
-          <p class="text-center text-xs text-slate-300 pb-4">
-            Powered by <span class="font-semibold text-slate-400">ClinicGo</span>
-          </p>
-        </div>
-      </main>
-    </template>
-
-    <!-- =================== LAYOUT B: Visual Cards (Pro+) =================== -->
-    <template v-else-if="activeLayout === 'layout_b'">
-      <header class="relative overflow-hidden"
-        :style="{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }">
-        <div class="absolute inset-0 opacity-10"
-          style="background-image: radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px); background-size: 30px 30px;"></div>
-        <div class="relative max-w-2xl mx-auto px-5 py-6 flex items-center gap-4">
-          <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
-            class="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow-lg shrink-0" />
-          <div v-else class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0">
-            {{ clinic!.name.charAt(0).toUpperCase() }}
-          </div>
-          <div>
-            <h1 class="text-lg font-black text-white leading-tight">{{ clinic!.name }}</h1>
-            <p class="text-sm text-white/70 mt-0.5">{{ branch ? branch.name + ' · ' : '' }}Book your appointment online</p>
-          </div>
-          <div class="ml-auto hidden sm:flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-xl px-3 py-1.5">
-            <span class="material-icons text-white text-[16px]">verified</span>
-            <span class="text-xs font-bold text-white">Instant Booking</span>
-          </div>
-        </div>
-      </header>
-
-      <div class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
-        <div class="max-w-2xl mx-auto px-4">
-          <div class="flex">
-            <div v-for="(step, i) in steps" :key="i"
-              class="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold border-b-2 transition-all"
-              :class="i < currentStep ? 'text-green-500 border-transparent' : i > currentStep ? 'text-slate-300 border-transparent' : ''"
-              :style="i === currentStep ? { color: primaryColor, borderBottomColor: primaryColor } : {}">
-              <span :class="['w-5 h-5 rounded-full flex items-center justify-center text-[10px]',
-                i < currentStep ? 'bg-green-500 text-white' : i > currentStep ? 'bg-gray-100 text-slate-400' : 'text-white']"
-                :style="i === currentStep ? { background: primaryColor } : {}">
-                <span v-if="i < currentStep" class="material-icons text-[11px]">check</span>
-                <span v-else>{{ i + 1 }}</span>
-              </span>
-              {{ step }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <main class="flex-1 px-4 py-6">
-        <div class="max-w-2xl mx-auto space-y-4">
-          <BookingForm v-bind="formProps" @update:selected-category="selectedCategory = $event" @book="handleBooking" @refresh="loadAvailability(true)" />
-          <p class="text-center text-xs text-slate-300 pb-4">Powered by <span class="font-semibold text-slate-400">ClinicGo</span></p>
-        </div>
-      </main>
-    </template>
-
-    <!-- =================== LAYOUT C: Clinic Showcase (Pro+) =================== -->
-    <template v-else-if="activeLayout === 'layout_c'">
-      <div class="min-h-screen flex flex-col lg:flex-row">
-        <!-- Left panel -->
-        <aside class="lg:w-80 xl:w-96 shrink-0 flex flex-col"
-          :style="{ background: `linear-gradient(160deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }">
-          <div class="p-6 flex flex-col gap-5 lg:sticky lg:top-0 lg:min-h-screen">
-            <div class="flex items-center gap-3">
-              <img v-if="branding?.logo_url" :src="branding.logo_url" alt="Logo"
-                class="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow-lg" />
-              <div v-else class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-2xl">
-                {{ clinic!.name.charAt(0) }}
-              </div>
-              <div>
-                <h1 class="text-base font-black text-white">{{ clinic!.name }}</h1>
-                <p class="text-xs text-white/60">Clinic</p>
-              </div>
-            </div>
-            <div class="space-y-3">
-              <div class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
-                <span class="material-icons text-white/70 text-[18px]">location_on</span>
-                <div>
-                  <p class="text-xs font-bold text-white">Location</p>
-                  <p class="text-xs text-white/60">{{ branch?.address || 'Philippines' }}</p>
-                </div>
-              </div>
-              <div v-if="branch?.contact_number" class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
-                <span class="material-icons text-white/70 text-[18px]">phone</span>
-                <div>
-                  <p class="text-xs font-bold text-white">Contact</p>
-                  <p class="text-xs text-white/60">{{ branch.contact_number }}</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
-                <span class="material-icons text-white/70 text-[18px]">schedule</span>
-                <div>
-                  <p class="text-xs font-bold text-white">Operating Hours</p>
-                  <p class="text-xs text-white/60">{{ openingHours }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="flex-1 min-h-36 rounded-2xl overflow-hidden border border-white/20 bg-white/10 relative">
-              <iframe
-                :src="`https://maps.google.com/maps?q=${encodeURIComponent(clinic!.name + ' Philippines')}&output=embed&z=14`"
-                class="w-full h-full absolute inset-0 opacity-90"
-                frameborder="0" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                title="Clinic location map">
-              </iframe>
-              <div class="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center gap-1 shadow">
-                <span class="material-icons text-red-500 text-[14px]">place</span>
-                <span class="text-[11px] font-bold text-slate-700">{{ clinic!.name }}</span>
-              </div>
-            </div>
-            <p class="text-xs text-white/30 text-center">Powered by ClinicGo</p>
-          </div>
-        </aside>
-
-        <!-- Right panel: booking form -->
-        <main class="flex-1 bg-white px-4 py-6 lg:px-8 lg:py-8 overflow-y-auto">
-          <div class="max-w-lg mx-auto space-y-4">
-            <div class="mb-2">
-              <h2 class="text-xl font-black text-slate-900">Book an Appointment</h2>
-              <p class="text-sm text-slate-400 mt-0.5">Fill out the form and we'll confirm your slot.</p>
-            </div>
-            <BookingForm v-bind="formProps" @update:selected-category="selectedCategory = $event" @book="handleBooking" @refresh="loadAvailability(true)" />
-          </div>
-        </main>
-      </div>
-    </template>
+    <!-- The chosen layout; the page keeps all the logic, layouts only arrange it -->
+    <component :is="layoutComponent" v-else />
 
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { clinicService } from '@/services/clinic.service'
 import { clinicServicesService } from '@/services/clinic-services.service'
@@ -269,9 +107,12 @@ import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, Branch, Clinic
 import { SERVICE_CATEGORIES } from '@/types'
 import {
   type BookingAvailability, bookingReference, buildIcs, downloadTextFile, formatLongDate,
-  isValidEmail, isValidPhone, manilaToday, openingHoursLabel, slotMinutes,
+  bookingLocation, isValidEmail, isValidPhone, manilaToday, openingHoursLabel, slotMinutes,
 } from '@/utils/booking'
-import BookingForm from './BookingForm.vue'
+import { provideBooking, type BookingCtx } from './bookingContext'
+import ClassicLayout from './layouts/ClassicLayout.vue'
+import CardsLayout from './layouts/CardsLayout.vue'
+import ShowcaseLayout from './layouts/ShowcaseLayout.vue'
 
 const route = useRoute()
 // /book/:clinicSlug/:branchSlug?
@@ -301,7 +142,7 @@ const bookedAppointmentId = ref('')
 const reference = computed(() => (bookedAppointmentId.value ? bookingReference(bookedAppointmentId.value) : ''))
 const openingHours = openingHoursLabel()
 
-const steps = ['Your Info', 'Service', 'Schedule']
+// 0 = your info, 1 = service, 2 = schedule
 const currentStep = computed(() => {
   if (!isValidPhone(form.value.contact_number) || form.value.full_name.trim().length < 2) return 0
   if (!form.value.service_name && categories.value.length > 0 && !form.value.time_slot) return 1
@@ -508,20 +349,30 @@ function addToCalendar() {
   downloadTextFile('appointment.ics', ics)
 }
 
-const formProps = computed(() => ({
-  form: form.value,
-  primaryColor: primaryColor.value,
-  selectedCategory: selectedCategory.value,
-  doctors: doctors.value,
-  showDoctorSelect: showDoctorSelect.value,
-  today,
-  errorMsg: errorMsg.value,
-  notice: notice.value,
-  saving: saving.value,
-  canSubmit: canSubmit.value,
-  categories: categories.value,
-  availability: availability.value,
-}))
+const layoutComponent = computed(() =>
+  activeLayout.value === 'layout_b' ? CardsLayout : activeLayout.value === 'layout_c' ? ShowcaseLayout : ClassicLayout)
+
+const location = computed(() => bookingLocation(clinic.value ?? { name: '' }, branch.value))
+
+const missing = computed(() => {
+  const out: string[] = []
+  if (form.value.full_name.trim().length < 2) out.push('your name')
+  if (!isValidPhone(form.value.contact_number)) out.push('a valid phone number')
+  if (form.value.email.trim() && !isValidEmail(form.value.email)) out.push('a valid email')
+  if (!form.value.time_slot) out.push('a time')
+  return out
+})
+
+// Layouts read everything through this; refs unwrap because the object is reactive
+provideBooking(reactive({
+  clinic, branch, location, openingHours, form, primaryColor, secondaryColor,
+  logoUrl: computed(() => branding.value?.logo_url ?? null),
+  categories, selectedCategory, doctors, showDoctorSelect, today, availability,
+  errorMsg, notice, saving, canSubmit, missing, currentStep,
+  setCategory: (category: ClinicServiceCategory | null) => { selectedCategory.value = category },
+  refreshAvailability: () => loadAvailability(true),
+  book: handleBooking,
+}) as unknown as BookingCtx)
 
 onMounted(async () => {
   // Use clinicSlug (not old "slug") to load the clinic

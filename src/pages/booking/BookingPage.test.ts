@@ -74,6 +74,21 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+const button = (text: string) => {
+  const found = wrapper.findAll('button').find(b => b.text().includes(text))
+  if (!found) throw new Error(`no button "${text}"`)
+  return found
+}
+
+/** Layout B is a guided wizard: service, date and time, details, review */
+async function walkToReview() {
+  await button('Skip').trigger('click')
+  await slotButton('9:00 AM').trigger('click')
+  await button('Continue').trigger('click')
+  await fillIn()
+  await button('Continue').trigger('click')
+}
+
 describe('booking page: availability', () => {
   it('asks the server which times are taken for the chosen date', async () => {
     await mountPage()
@@ -261,12 +276,11 @@ describe('booking page: layouts and preview', () => {
     await mountPage()
 
     expect(wrapper.text()).toContain('Preview of your unsaved branding')
-    expect(wrapper.text()).toContain('Book your appointment online') // layout B header
+    expect(wrapper.text()).toContain('Book online') // guided layout hero
     expect(wrapper.html()).toContain('#f43f5e')
     expect(wrapper.html().toLowerCase()).not.toContain('#0ea5e9')
 
-    await fillIn()
-    await slotButton('9:00 AM').trigger('click')
+    await walkToReview()
     expect(confirmButton().attributes('disabled')).toBeDefined()
     await confirmButton().trigger('click')
     expect(mocks.bookPublic).not.toHaveBeenCalled()
@@ -282,5 +296,131 @@ describe('booking page: layouts and preview', () => {
   it('does not show the preview banner on the normal page', async () => {
     await mountPage()
     expect(wrapper.text()).not.toContain('Preview of your unsaved branding')
+  })
+})
+
+const withLayout = (layout: string, extra: Record<string, unknown> = {}) => ({
+  ...clinic, plan: 'pro', ...extra,
+  clinic_branding: { ...clinic.clinic_branding, layout },
+})
+
+describe('booking page: classic layout', () => {
+  it('offers navigation to the clinic when it has an address', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({ data: { ...clinic, address: '12 Rizal Ave, Manila', phone: '0917 123 4567' }, error: null })
+    await mountPage()
+    const link = wrapper.findAll('a').find(a => a.text().includes('Navigate'))!
+    expect(link.attributes('href')).toContain('destination=Demo%20Clinic%2C%2012%20Rizal%20Ave%2C%20Manila')
+  })
+
+  it('offers a call link when there is only a phone number', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({ data: { ...clinic, phone: '0917 123 4567' }, error: null })
+    await mountPage()
+    expect(wrapper.findAll('a').find(a => a.text().includes('Call'))!.attributes('href')).toBe('tel:09171234567')
+  })
+
+  it('shows every field of the form at once', async () => {
+    await mountPage()
+    for (const id of ['#bk-name', '#bk-phone', '#bk-email', '#bk-notes']) expect(wrapper.find(id).exists()).toBe(true)
+  })
+})
+
+describe('booking page: guided cards layout', () => {
+  beforeEach(() => {
+    mocks.getClinicBySlug.mockResolvedValue({ data: withLayout('layout_b', { address: '12 Rizal Ave' }), error: null })
+  })
+
+  it('starts on the service step and shows one step at a time', async () => {
+    await mountPage()
+    expect(wrapper.text()).toContain('What do you need?')
+    expect(wrapper.find('#bk-name').exists()).toBe(false)
+    expect(wrapper.text()).toContain('12 Rizal Ave')
+  })
+
+  it('will not continue from date & time until a time is chosen', async () => {
+    await mountPage()
+    await button('Skip').trigger('click')
+    expect(button('Continue').attributes('disabled')).toBeDefined()
+    await slotButton('9:00 AM').trigger('click')
+    expect(button('Continue').attributes('disabled')).toBeUndefined()
+  })
+
+  it('will not continue from details until the name and phone are valid', async () => {
+    await mountPage()
+    await button('Skip').trigger('click')
+    await slotButton('9:00 AM').trigger('click')
+    await button('Continue').trigger('click')
+    expect(button('Continue').attributes('disabled')).toBeDefined()
+    await fillIn()
+    expect(button('Continue').attributes('disabled')).toBeUndefined()
+  })
+
+  it('goes back without losing what was entered', async () => {
+    await mountPage()
+    await walkToReview()
+    await button('Back').trigger('click')
+    expect((wrapper.find('#bk-name').element as HTMLInputElement).value).toBe('Juan Dela Cruz')
+  })
+
+  it('reviews and books', async () => {
+    await mountPage()
+    await walkToReview()
+    expect(wrapper.text()).toContain('Juan Dela Cruz')
+    expect(wrapper.text()).toContain('9:00 AM')
+    await confirmButton().trigger('click')
+    await flushPromises()
+    expect(mocks.bookPublic).toHaveBeenCalledWith(expect.objectContaining({ full_name: 'Juan Dela Cruz', time_slot: '9:00 AM' }))
+    expect(wrapper.text()).toContain('All set!')
+  })
+
+  it('sends them back to choose another time when theirs was taken', async () => {
+    await mountPage()
+    await walkToReview()
+    mocks.bookPublic.mockResolvedValue({ data: null, error: 'That time is already taken' })
+    mocks.getPublicAvailability.mockResolvedValue(availability(['9:00 AM']))
+    await confirmButton().trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('someone just booked that time')
+    expect(wrapper.text()).toContain('Pick a date')
+  })
+})
+
+describe('booking page: clinic showcase layout', () => {
+  beforeEach(() => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: withLayout('layout_c', { address: '12 Rizal Ave, Manila', phone: '0917 123 4567' }), error: null,
+    })
+  })
+
+  it('shows the clinic map for its address, with directions', async () => {
+    await mountPage()
+    const frame = wrapper.find('iframe')
+    expect(frame.attributes('src')).toContain(encodeURIComponent('Demo Clinic, 12 Rizal Ave, Manila'))
+    expect(frame.attributes('title')).toContain('Demo Clinic')
+    const directions = wrapper.findAll('a').find(a => a.text().includes('Get directions'))!
+    expect(directions.attributes('href')).toContain('destination=')
+    expect(wrapper.text()).toContain('12 Rizal Ave, Manila')
+    expect(wrapper.text()).toContain('0917 123 4567')
+  })
+
+  it('still shows a map from the clinic name when no address is set', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({ data: withLayout('layout_c'), error: null })
+    await mountPage()
+    expect(wrapper.find('iframe').attributes('src')).toContain(encodeURIComponent('Demo Clinic, Philippines'))
+  })
+
+  it('books from the same page', async () => {
+    await mountPage()
+    await fillIn()
+    await slotButton('9:00 AM').trigger('click')
+    await confirmButton().trigger('click')
+    await flushPromises()
+    expect(mocks.bookPublic).toHaveBeenCalledWith(expect.objectContaining({ full_name: 'Juan Dela Cruz', time_slot: '9:00 AM' }))
+  })
+
+  it('falls back to the classic layout on Starter', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({ data: withLayout('layout_c', { plan: 'starter' }), error: null })
+    await mountPage()
+    expect(wrapper.find('iframe').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Online Appointment Booking')
   })
 })

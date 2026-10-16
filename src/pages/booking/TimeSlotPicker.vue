@@ -3,13 +3,13 @@
     <!-- Legend -->
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-[11px] font-semibold text-slate-400">
       <span class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded border border-gray-300 bg-white"></span> Available
+        <span :class="['w-3 h-3 border border-gray-300 bg-white', refined ? 'rounded-full' : 'rounded']"></span> Available
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded" :style="{ background: primaryColor }"></span> Your choice
+        <span :class="['w-3 h-3', refined ? 'rounded-full' : 'rounded']" :style="{ background: primaryColor }"></span> Your choice
       </span>
       <span class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-slate-200"></span> Taken
+        <span :class="['w-3 h-3 bg-slate-200', refined ? 'rounded-full' : 'rounded']"></span> Taken
       </span>
       <span v-if="!loading && states.length" class="ml-auto font-bold"
         :class="availableCount ? 'text-emerald-600' : 'text-red-500'">
@@ -19,7 +19,7 @@
 
     <!-- Loading skeleton -->
     <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-busy="true" aria-label="Checking availability">
-      <div v-for="n in 8" :key="n" class="h-[46px] rounded-xl bg-slate-100 animate-pulse"></div>
+      <div v-for="n in 8" :key="n" :class="['h-[46px] bg-slate-100 animate-pulse', refined ? 'rounded-full' : 'rounded-xl']"></div>
     </div>
 
     <template v-else>
@@ -34,11 +34,12 @@
             :aria-pressed="selected === slot.label"
             :title="slot.state === 'booked' ? 'This time is already booked' : slot.state === 'past' ? 'This time has passed' : ''"
             @click="$emit('update:selected', slot.label)"
-            :class="['relative py-2.5 rounded-xl text-sm font-bold border transition-all focus:outline-none focus-visible:ring-2',
-              slot.state === 'available' && selected !== slot.label ? 'bg-white border-gray-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 active:scale-95' : '',
+            :class="['relative py-2.5 text-sm font-bold border transition-all focus:outline-none focus-visible:ring-2',
+              refined ? 'rounded-full' : 'rounded-xl',
+              slot.state === 'available' && selected !== slot.label ? (refined ? 'bg-transparent border-stone-300 text-stone-700 hover:border-stone-500 active:scale-95' : 'bg-white border-gray-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 active:scale-95') : '',
               selected === slot.label && slot.state === 'available' ? 'text-white border-transparent shadow-sm' : '',
               slot.state === 'booked' ? 'bg-slate-100 border-slate-100 text-slate-300 cursor-not-allowed' : '',
-              slot.state === 'past' ? 'bg-white border-dashed border-gray-200 text-slate-300 cursor-not-allowed' : '']"
+              slot.state === 'past' ? 'bg-transparent border-dashed border-gray-200 text-slate-300 cursor-not-allowed' : '']"
             :style="selected === slot.label && slot.state === 'available' ? { background: primaryColor } : {}">
             <span :class="slot.state !== 'available' ? 'line-through decoration-slate-300' : ''">{{ slot.label }}</span>
             <span v-if="slot.state === 'booked'"
@@ -77,12 +78,15 @@ const props = defineProps<{
   nowMinutes: number
   loading: boolean
   primaryColor: string
+  look?: 'classic' | 'refined'
 }>()
 
 defineEmits<{
   (e: 'update:selected', v: string): void
   (e: 'next-day'): void
 }>()
+
+const refined = computed(() => props.look === 'refined')
 
 type SlotState = 'available' | 'booked' | 'past'
 

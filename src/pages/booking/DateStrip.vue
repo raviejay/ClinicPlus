@@ -2,21 +2,23 @@
   <div>
     <div class="flex items-center gap-1.5">
       <button type="button" @click="shift(-1)" :disabled="offset <= 0" aria-label="Previous week"
-        class="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+        :class="['w-8 h-8 shrink-0 flex items-center justify-center border text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors',
+          refined ? 'rounded-full border-stone-300' : 'rounded-lg border-gray-200']">
         <span class="material-icons text-[18px]">chevron_left</span>
       </button>
 
       <div class="grid grid-cols-7 gap-1 flex-1" role="group" aria-label="Choose a date">
         <button v-for="day in week" :key="day.iso" type="button" @click="$emit('update:modelValue', day.iso)"
           :aria-pressed="day.iso === modelValue"
-          :class="['flex flex-col items-center py-2 rounded-xl border transition-all active:scale-95 focus:outline-none focus-visible:ring-2',
-            day.iso === modelValue ? 'text-white border-transparent shadow-sm' : 'bg-white border-gray-200 text-slate-600 hover:bg-slate-50']"
+          :class="['flex flex-col items-center py-2 border transition-all active:scale-95 focus:outline-none focus-visible:ring-2',
+            refined ? 'rounded-lg' : 'rounded-xl',
+            day.iso === modelValue ? 'text-white border-transparent shadow-sm' : refined ? 'bg-transparent border-stone-200 text-stone-600 hover:border-stone-400' : 'bg-white border-gray-200 text-slate-600 hover:bg-slate-50']"
           :style="day.iso === modelValue ? { background: primaryColor } : {}">
           <span :class="['text-[10px] font-bold uppercase tracking-wide',
             day.iso === modelValue ? 'text-white/80' : day.isWeekend ? 'text-slate-300' : 'text-slate-400']">
             {{ day.isToday ? 'Today' : day.weekday }}
           </span>
-          <span class="text-base font-black leading-tight">{{ day.day }}</span>
+          <span :class="['text-base font-black leading-tight', refined && 'font-display']">{{ day.day }}</span>
           <span :class="['text-[10px] font-semibold', day.iso === modelValue ? 'text-white/80' : 'text-slate-400']">
             {{ day.month }}
           </span>
@@ -24,7 +26,8 @@
       </div>
 
       <button type="button" @click="shift(1)" :disabled="offset + 7 > maxDays" aria-label="Next week"
-        class="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+        :class="['w-8 h-8 shrink-0 flex items-center justify-center border text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors',
+          refined ? 'rounded-full border-stone-300' : 'rounded-lg border-gray-200']">
         <span class="material-icons text-[18px]">chevron_right</span>
       </button>
     </div>
@@ -52,10 +55,12 @@ const props = defineProps<{
   /** Earliest bookable date (today in Manila) */
   min: string
   primaryColor: string
+  look?: 'classic' | 'refined'
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
+const refined = computed(() => props.look === 'refined')
 const maxDays = 180 // how far ahead patients can book
 const maxDate = computed(() => addDays(props.min, maxDays))
 

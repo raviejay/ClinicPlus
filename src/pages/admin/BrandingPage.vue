@@ -153,28 +153,45 @@
                 <!-- thumbnail -->
                 <div class="h-24 rounded-lg border border-gray-200 bg-slate-50 overflow-hidden p-2 mb-3">
                   <template v-if="opt.id === 'layout_a'">
-                    <div class="h-2.5 rounded bg-slate-300 w-2/3 mb-1.5"></div>
-                    <div class="h-2 rounded bg-slate-200 mb-1"></div>
-                    <div class="h-2 rounded bg-slate-200 w-5/6 mb-1"></div>
-                    <div class="h-2 rounded bg-slate-200 w-4/6 mb-2"></div>
-                    <div class="h-4 rounded" :style="{ background: branding.primary_color }"></div>
+                    <div class="h-2.5 rounded bg-white border border-gray-200 mb-1.5"></div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                      <div class="space-y-1">
+                        <div class="h-5 rounded bg-white border border-gray-200"></div>
+                        <div class="h-5 rounded bg-white border border-gray-200"></div>
+                      </div>
+                      <div class="space-y-1">
+                        <div class="h-7 rounded bg-white border border-gray-200"></div>
+                        <div class="h-3 rounded" :style="{ background: branding.primary_color }"></div>
+                      </div>
+                    </div>
                   </template>
                   <template v-else-if="opt.id === 'layout_b'">
-                    <div class="h-6 rounded mb-1.5" :style="{ background: `linear-gradient(135deg, ${branding.primary_color}, ${branding.secondary_color})` }"></div>
-                    <div class="grid grid-cols-2 gap-1 mb-1.5">
-                      <div class="h-5 rounded bg-white border border-gray-200"></div>
-                      <div class="h-5 rounded bg-white border border-gray-200"></div>
+                    <div class="h-7 rounded-lg mb-1" :style="{ background: `linear-gradient(135deg, ${branding.primary_color}, ${branding.secondary_color})` }"></div>
+                    <div class="-mt-3 mx-1.5 rounded-lg bg-white border border-gray-200 shadow-sm p-1.5">
+                      <div class="flex gap-0.5 mb-1.5">
+                        <div class="h-1 rounded-full flex-1" :style="{ background: branding.primary_color }"></div>
+                        <div class="h-1 rounded-full flex-1 bg-slate-200"></div>
+                        <div class="h-1 rounded-full flex-1 bg-slate-200"></div>
+                      </div>
+                      <div class="grid grid-cols-7 gap-0.5">
+                        <div v-for="n in 14" :key="n" class="h-1.5 rounded-full" :class="n === 5 ? '' : 'bg-slate-200'"
+                          :style="n === 5 ? { background: branding.primary_color } : {}"></div>
+                      </div>
                     </div>
-                    <div class="h-3 rounded" :style="{ background: branding.primary_color }"></div>
                   </template>
                   <template v-else>
-                    <div class="flex gap-1.5 h-full">
-                      <div class="w-2/5 rounded" :style="{ background: `linear-gradient(160deg, ${branding.primary_color}, ${branding.secondary_color})` }"></div>
-                      <div class="flex-1 flex flex-col gap-1">
-                        <div class="h-2 rounded bg-slate-200"></div>
-                        <div class="h-2 rounded bg-slate-200 w-4/5"></div>
-                        <div class="h-2 rounded bg-slate-200 w-3/5"></div>
-                        <div class="h-3.5 rounded mt-auto" :style="{ background: branding.primary_color }"></div>
+                    <div class="flex h-full -m-0.5">
+                      <div class="w-2/5 rounded-l p-1.5 flex flex-col gap-1" style="background: linear-gradient(165deg, #1f2937, #0b0d12)">
+                        <div class="h-1 w-3/5 rounded-full" style="background: #c9a96e"></div>
+                        <div class="flex-1 rounded-sm bg-white/20 relative">
+                          <span class="absolute top-1/2 left-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" style="background: #c9a96e"></span>
+                        </div>
+                      </div>
+                      <div class="flex-1 rounded-r bg-[#fbf9f4] p-1.5 flex flex-col gap-1.5">
+                        <div class="h-1 rounded bg-stone-300 w-2/5"></div>
+                        <div class="h-px bg-stone-300"></div>
+                        <div class="h-px bg-stone-300"></div>
+                        <div class="h-2.5 rounded-full mt-auto" :style="{ background: branding.primary_color }"></div>
                       </div>
                     </div>
                   </template>
@@ -282,7 +299,7 @@
                 <div v-else class="w-10 h-10 rounded-xl bg-white/25 flex items-center justify-center text-white font-black">{{ initial }}</div>
                 <div class="min-w-0">
                   <p class="text-sm font-black text-white truncate">{{ clinic?.name ?? 'Your Clinic' }}</p>
-                  <p class="text-[11px] text-white/70">Book your appointment online</p>
+                  <p class="text-[11px] text-white/70">Guided booking, one step at a time</p>
                 </div>
               </div>
               <div v-else-if="branding.layout === 'layout_c'" class="px-4 py-3 flex items-center gap-3"
@@ -291,7 +308,7 @@
                 <div v-else class="w-9 h-9 rounded-xl bg-white/25 flex items-center justify-center text-white font-black text-sm">{{ initial }}</div>
                 <div class="min-w-0">
                   <p class="text-xs font-black text-white truncate">{{ clinic?.name ?? 'Your Clinic' }}</p>
-                  <p class="text-[10px] text-white/60">Clinic info &amp; map beside the form on wide screens</p>
+                  <p class="text-[10px] text-white/60">Refined layout with your map beside the form</p>
                 </div>
               </div>
               <div v-else class="px-4 py-3 bg-white border-b border-gray-100 flex items-center gap-3">
@@ -459,11 +476,11 @@ const planBadgeClass = computed(() => {
 
 const layoutOptions = computed(() => [
   { id: 'layout_a' as const, name: 'Classic Form', plan: 'All plans', locked: false,
-    desc: 'Simple, clean booking form. Minimal and fast.' },
+    desc: 'Clean two-column form with a step bar. Adapts from desktop to phone.' },
   { id: 'layout_b' as const, name: 'Visual Cards', plan: 'Pro+', locked: !canUsePro.value,
-    desc: 'A bold header with step cards and a clear time picker.' },
+    desc: 'A guided, one-step-at-a-time booking with a month calendar.' },
   { id: 'layout_c' as const, name: 'Clinic Showcase', plan: 'Pro+', locked: !canUsePro.value,
-    desc: 'Clinic info and map beside the booking form.' },
+    desc: 'An elegant dark panel with your map and details beside the form.' },
 ])
 
 const branding = ref<ClinicBranding>({
