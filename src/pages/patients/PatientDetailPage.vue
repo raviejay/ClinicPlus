@@ -51,6 +51,16 @@
                   <span class="material-icons text-base">note_add</span>
                   Add Record
                 </RouterLink>
+                <RouterLink :to="`/reports?patient=${patient.id}&kind=medcert`"
+                  class="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-sky-300 text-slate-700 text-sm font-bold px-3.5 py-2 rounded-xl transition-colors">
+                  <span class="material-icons text-base">verified</span>
+                  Certificate
+                </RouterLink>
+                <RouterLink :to="`/reports?patient=${patient.id}&kind=prescription`"
+                  class="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-sky-300 text-slate-700 text-sm font-bold px-3.5 py-2 rounded-xl transition-colors">
+                  <span class="material-icons text-base">medication</span>
+                  Prescription
+                </RouterLink>
               </template>
               <span v-else
                 class="flex items-center gap-1.5 bg-slate-100 text-slate-400 text-sm font-bold px-3.5 py-2 rounded-xl cursor-not-allowed" title="Read-only — choose a plan to add records or appointments">

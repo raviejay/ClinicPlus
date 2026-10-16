@@ -123,6 +123,12 @@ const router = createRouter({
       component: () => import("@/pages/reports/ReportsPage.vue"),
       meta: { requiresAuth: true, requiresClinic: true },
     },
+    {
+      path: "/reports/design/:id",
+      name: "document-designer",
+      component: () => import("@/pages/reports/TemplateDesigner.vue"),
+      meta: { requiresAuth: true, requiresClinic: true, requiresAdmin: true },
+    },
     // Admin only
     {
       path: "/admin/overview",
