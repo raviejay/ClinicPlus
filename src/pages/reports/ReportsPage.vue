@@ -374,40 +374,45 @@ function generateDocument() {
   showPrintModal.value = true
 }
 
+// Everything typed by users (patient names come from the public booking page) goes through this
+// before it is placed in the document HTML.
+const esc = (value: unknown) =>
+  String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+
 function buildMedCert({ patient, clinic, doctor, date, ageSex }: any) {
   const purpose = form.value.purpose ? purposeLabel(form.value.purpose) : ''
-  const restDays = form.value.restDays ? `<p style="margin:6px 0">The patient is advised to rest for <strong>${form.value.restDays} day(s)</strong>.</p>` : ''
+  const restDays = form.value.restDays ? `<p style="margin:6px 0">The patient is advised to rest for <strong>${esc(form.value.restDays)} day(s)</strong>.</p>` : ''
   const validUntil = form.value.validUntil ? `<p style="margin:6px 0;font-size:11pt;color:#64748b">Valid until: ${formatDate(form.value.validUntil)}</p>` : ''
 
   return `
     <div style="max-width:680px;margin:0 auto;padding:40px 48px;font-family:Georgia,serif;color:#1e293b;border:1px solid #e2e8f0">
       <!-- Clinic Header -->
       <div style="text-align:center;border-bottom:2px solid #0ea5e9;padding-bottom:16px;margin-bottom:24px">
-        <h1 style="margin:0;font-size:18pt;font-weight:bold;letter-spacing:1px;color:#0f172a">${clinic?.name ?? 'Clinic'}</h1>
+        <h1 style="margin:0;font-size:18pt;font-weight:bold;letter-spacing:1px;color:#0f172a">${esc(clinic?.name ?? 'Clinic')}</h1>
         <p style="margin:4px 0 0;font-size:10pt;color:#64748b">Medical Certificate</p>
       </div>
 
       <!-- Date -->
-      <p style="text-align:right;font-size:10pt;color:#64748b;margin-bottom:20px">Date: <strong>${date}</strong></p>
+      <p style="text-align:right;font-size:10pt;color:#64748b;margin-bottom:20px">Date: <strong>${esc(date)}</strong></p>
 
       <!-- To Whom -->
-      ${purpose ? `<p style="margin-bottom:16px;font-size:11pt">To Whom It May Concern (${purpose}):</p>` : '<p style="margin-bottom:16px;font-size:11pt">To Whom It May Concern:</p>'}
+      ${purpose ? `<p style="margin-bottom:16px;font-size:11pt">To Whom It May Concern (${esc(purpose)}):</p>` : '<p style="margin-bottom:16px;font-size:11pt">To Whom It May Concern:</p>'}
 
       <!-- Body -->
       <p style="margin-bottom:12px;font-size:11pt;line-height:1.8">
-        This is to certify that <strong>${patient.full_name}</strong>${ageSex ? ` (${ageSex})` : ''} was examined at this clinic on <strong>${date}</strong>.
+        This is to certify that <strong>${esc(patient.full_name)}</strong>${ageSex ? ` (${esc(ageSex)})` : ''} was examined at this clinic on <strong>${esc(date)}</strong>.
       </p>
 
       ${form.value.diagnosis ? `
       <p style="margin-bottom:12px;font-size:11pt;line-height:1.8">
         <strong>Findings / Diagnosis:</strong><br/>
-        ${form.value.diagnosis}
+        ${esc(form.value.diagnosis)}
       </p>` : ''}
 
       ${form.value.remarks ? `
       <p style="margin-bottom:12px;font-size:11pt;line-height:1.8">
         <strong>Recommendation:</strong><br/>
-        ${form.value.remarks}
+        ${esc(form.value.remarks)}
       </p>` : ''}
 
       ${restDays}
@@ -420,9 +425,9 @@ function buildMedCert({ patient, clinic, doctor, date, ageSex }: any) {
       <!-- Signature -->
       <div style="margin-top:56px">
         <div style="border-top:1px solid #1e293b;width:220px;padding-top:6px">
-          <p style="margin:0;font-weight:bold;font-size:11pt">Dr. ${doctor}</p>
+          <p style="margin:0;font-weight:bold;font-size:11pt">Dr. ${esc(doctor)}</p>
           <p style="margin:2px 0 0;font-size:10pt;color:#64748b">Attending Physician</p>
-          <p style="margin:2px 0 0;font-size:10pt;color:#64748b">${clinic?.name ?? ''}</p>
+          <p style="margin:2px 0 0;font-size:10pt;color:#64748b">${esc(clinic?.name ?? '')}</p>
         </div>
       </div>
     </div>
@@ -433,8 +438,8 @@ function buildPrescription({ patient, clinic, doctor, date, ageSex }: any) {
   const meds = form.value.medicines.filter(m => m.name.trim())
   const medsHtml = meds.map((m, i) => `
     <div style="margin-bottom:16px;padding-left:12px;border-left:3px solid #a855f7">
-      <p style="margin:0;font-weight:bold;font-size:12pt">${i + 1}. ${m.name}</p>
-      ${m.sig ? `<p style="margin:4px 0 0;font-size:10pt;color:#475569">Sig: ${m.sig}</p>` : ''}
+      <p style="margin:0;font-weight:bold;font-size:12pt">${i + 1}. ${esc(m.name)}</p>
+      ${m.sig ? `<p style="margin:4px 0 0;font-size:10pt;color:#475569">Sig: ${esc(m.sig)}</p>` : ''}
     </div>
   `).join('')
 
@@ -445,19 +450,19 @@ function buildPrescription({ patient, clinic, doctor, date, ageSex }: any) {
       <!-- Header -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #a855f7;padding-bottom:16px;margin-bottom:24px">
         <div>
-          <h1 style="margin:0;font-size:18pt;font-weight:bold;color:#0f172a">${clinic?.name ?? 'Clinic'}</h1>
+          <h1 style="margin:0;font-size:18pt;font-weight:bold;color:#0f172a">${esc(clinic?.name ?? 'Clinic')}</h1>
           <p style="margin:4px 0 0;font-size:10pt;color:#64748b">Prescription</p>
         </div>
         <div style="text-align:right;font-size:10pt;color:#64748b">
-          <p style="margin:0">Date: <strong>${date}</strong></p>
-          <p style="margin:4px 0 0">Dr. ${doctor}</p>
+          <p style="margin:0">Date: <strong>${esc(date)}</strong></p>
+          <p style="margin:4px 0 0">Dr. ${esc(doctor)}</p>
         </div>
       </div>
 
       <!-- Patient Info -->
       <div style="background:#f8fafc;border-radius:8px;padding:12px 16px;margin-bottom:24px">
-        <p style="margin:0;font-size:11pt"><strong>Patient:</strong> ${patient.full_name}${ageSex ? ` &nbsp;|&nbsp; ${ageSex}` : ''}</p>
-        ${form.value.diagnosis ? `<p style="margin:4px 0 0;font-size:10pt;color:#475569"><strong>Dx:</strong> ${form.value.diagnosis}</p>` : ''}
+        <p style="margin:0;font-size:11pt"><strong>Patient:</strong> ${esc(patient.full_name)}${ageSex ? ` &nbsp;|&nbsp; ${esc(ageSex)}` : ''}</p>
+        ${form.value.diagnosis ? `<p style="margin:4px 0 0;font-size:10pt;color:#475569"><strong>Dx:</strong> ${esc(form.value.diagnosis)}</p>` : ''}
       </div>
 
       <!-- Rx Symbol -->
@@ -469,7 +474,7 @@ function buildPrescription({ patient, clinic, doctor, date, ageSex }: any) {
       <!-- Notes -->
       ${form.value.remarks ? `
       <div style="margin-top:20px;padding:12px 16px;background:#faf5ff;border-radius:8px;border:1px solid #e9d5ff">
-        <p style="margin:0;font-size:10pt;color:#475569"><strong>Notes:</strong> ${form.value.remarks}</p>
+        <p style="margin:0;font-size:10pt;color:#475569"><strong>Notes:</strong> ${esc(form.value.remarks)}</p>
       </div>` : ''}
 
       ${followUp}
@@ -477,9 +482,9 @@ function buildPrescription({ patient, clinic, doctor, date, ageSex }: any) {
       <!-- Signature -->
       <div style="margin-top:56px">
         <div style="border-top:1px solid #1e293b;width:220px;padding-top:6px">
-          <p style="margin:0;font-weight:bold;font-size:11pt">Dr. ${doctor}</p>
+          <p style="margin:0;font-weight:bold;font-size:11pt">Dr. ${esc(doctor)}</p>
           <p style="margin:2px 0 0;font-size:10pt;color:#64748b">Attending Physician</p>
-          <p style="margin:2px 0 0;font-size:10pt;color:#64748b">${clinic?.name ?? ''}</p>
+          <p style="margin:2px 0 0;font-size:10pt;color:#64748b">${esc(clinic?.name ?? '')}</p>
         </div>
       </div>
     </div>
