@@ -76,10 +76,6 @@
               {{ nowServing.patients?.full_name ?? 'Patient' }}
             </div>
 
-            <div v-if="nowServing.patients?.contact_number" class="tv-serving-contact">
-              {{ nowServing.patients.contact_number }}
-            </div>
-
             <div class="tv-serving-pulse-ring"></div>
           </div>
 
@@ -542,12 +538,6 @@ onUnmounted(() => {
   text-shadow: 0 2px 10px rgba(0,0,0,0.2);
   max-width: 100%;
   word-break: break-word;
-}
-
-.tv-serving-contact {
-  font-size: 1rem;
-  color: rgba(255,255,255,0.65);
-  font-weight: 500;
 }
 
 .tv-serving-pulse-ring {
