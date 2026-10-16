@@ -286,7 +286,6 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchStore } from '@/stores/branch'
 import { useClinic } from '@/composables/useClinic'
-import { supabase } from '@/services/supabase'
 import AppLogo from '@/components/AppLogo.vue'
 
 const authStore = useAuthStore()
@@ -298,7 +297,8 @@ const menuOpen = ref(false)
 const mobileMenuOpen = ref(false)
 const branchDropdownOpen = ref(false)
 const sidebarCollapsed = ref(false)
-const avatarUrl = ref<string | null>(null)
+// Same photo as on the profile page, straight from the saved profile
+const avatarUrl = computed(() => authStore.profile?.avatar_url ?? null)
 
 function selectBranch(branchId: string | null) {
   branchStore.selectBranch(branchId as string)
@@ -316,12 +316,6 @@ function handleOutsideClick(e: MouseEvent) {
 onMounted(async () => {
   document.addEventListener('click', handleOutsideClick, true)
   await branchStore.loadBranches()
-  if (authStore.user?.id) {
-    const { data } = supabase.storage.from('avatars').getPublicUrl(`${authStore.user.id}.jpg`)
-    const img = new Image()
-    img.onload = () => { avatarUrl.value = data.publicUrl + '?t=' + Date.now() }
-    img.src = data.publicUrl
-  }
 })
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick, true))
 

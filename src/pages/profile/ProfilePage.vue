@@ -8,19 +8,19 @@
       <div class="bg-white border border-gray-200 rounded-xl p-5">
         <div class="flex items-center gap-4">
           <div class="relative">
-            <img v-if="avatarUrl" :src="avatarUrl"
+            <img v-if="avatarUrl" :src="avatarUrl" alt="Your photo"
               class="w-16 h-16 rounded-full object-cover border-2 border-sky-100" />
             <div v-else
               class="w-16 h-16 rounded-full bg-sky-500 flex items-center justify-center text-white font-black text-2xl">
               {{ userInitial }}
             </div>
-            <button @click="triggerUpload"
+            <button @click="triggerUpload" :disabled="uploading" aria-label="Change photo"
               class="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-500 hover:bg-sky-600 rounded-full flex items-center justify-center shadow-md transition-colors">
               <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
               </svg>
             </button>
-            <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleAvatarUpload" />
+            <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleAvatarUpload" />
           </div>
           <div>
             <p class="font-black text-slate-900">{{ authStore.profile?.full_name ?? 'No name set' }}</p>
@@ -28,6 +28,8 @@
             <p class="text-xs text-slate-400">{{ authStore.user?.email }}</p>
           </div>
         </div>
+        <button v-if="avatarUrl && !uploading" type="button" @click="removeAvatar"
+          class="mt-3 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">Remove photo</button>
         <div v-if="uploadMsg" class="mt-3 text-xs text-green-600 font-medium">{{ uploadMsg }}</div>
         <div v-if="uploadError" class="mt-3 text-xs text-red-500">{{ uploadError }}</div>
         <div v-if="uploading" class="mt-3 flex items-center gap-2 text-xs text-slate-400">
@@ -107,14 +109,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/services/supabase'
+import { avatarService } from '@/services/avatar.service'
+import { avatarFileProblem } from '@/utils/image'
 import AppLayout from '@/layouts/AppLayout.vue'
 
 const authStore = useAuthStore()
 
-const avatarUrl = ref<string | null>(null)
+// The photo lives on the profile, so it is the same after a refresh and in the header
+const avatarUrl = computed(() => authStore.profile?.avatar_url ?? null)
 const uploading = ref(false)
 const uploadMsg = ref('')
 const uploadError = ref('')
@@ -139,30 +144,35 @@ function triggerUpload() {
 }
 
 async function handleAvatarUpload(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // so choosing the same file again still triggers
   if (!file || !authStore.user?.id) return
 
   uploadError.value = ''
   uploadMsg.value = ''
+  const problem = avatarFileProblem(file)
+  if (problem) { uploadError.value = problem; return }
+
   uploading.value = true
-
-  const ext = file.name.split('.').pop()
-  const path = `avatars/${authStore.user.id}.${ext}`
-
-  const { error } = await supabase.storage
-    .from('avatars')
-    .upload(path, file, { upsert: true })
-
+  const { error } = await avatarService.upload(authStore.user.id, file, avatarUrl.value)
   if (error) {
-    uploadError.value = error.message
-    uploading.value = false
-    return
+    uploadError.value = error
+  } else {
+    await authStore.loadProfile(authStore.user.id)
+    uploadMsg.value = 'Photo updated!'
   }
-
-  const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-  avatarUrl.value = data.publicUrl + '?t=' + Date.now()
-  uploadMsg.value = 'Photo updated!'
   uploading.value = false
+}
+
+async function removeAvatar() {
+  if (!authStore.user?.id) return
+  uploadError.value = ''
+  uploadMsg.value = ''
+  const { error } = await avatarService.remove(authStore.user.id, avatarUrl.value)
+  if (error) { uploadError.value = error; return }
+  await authStore.loadProfile(authStore.user.id)
+  uploadMsg.value = 'Photo removed.'
 }
 
 async function saveName() {
@@ -207,14 +217,4 @@ async function changePassword() {
   setTimeout(() => passwordSuccess.value = false, 3000)
 }
 
-onMounted(async () => {
-  if (!authStore.user?.id) return
-  // Try to load existing avatar
-  const { data } = supabase.storage.from('avatars').getPublicUrl(`avatars/${authStore.user.id}.jpg`)
-  // Check if it exists by fetching
-  try {
-    const res = await fetch(data.publicUrl, { method: 'HEAD' })
-    if (res.ok) avatarUrl.value = data.publicUrl + '?t=' + Date.now()
-  } catch {}
-})
 </script>

@@ -124,6 +124,8 @@ export interface Profile {
   role: UserRole
   /** False once an admin has deactivated the account */
   is_active?: boolean
+  /** Public address of the profile photo */
+  avatar_url?: string | null
   created_at: string
 }
 
