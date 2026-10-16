@@ -5,6 +5,8 @@ import { clinicService } from '@/services/clinic.service'
 import type { AuthUser, Profile, Clinic, ClinicSettings } from '@/types'
 import router from '@/router'
 
+export const DEACTIVATED_MESSAGE = 'This account has been deactivated. Please contact your clinic admin.'
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
   const profile = ref<Profile | null>(null)
@@ -61,6 +63,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function loadProfile(userId: string) {
     const { data } = await authService.getProfile(userId)
     if (data) {
+      // Deactivated while signed in: end the session and say why
+      if (data.is_active === false) {
+        await logout()
+        router.push('/login?deactivated=1')
+        return
+      }
       profile.value = data
       if (data.clinic_id) await loadClinic(data.clinic_id)
     }
@@ -88,6 +96,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     const { error } = await authService.login({ email, password })
     loading.value = false
+    // A deactivated account is banned at sign-in; say what that means
+    if (error && /banned/i.test(String(error))) return { error: DEACTIVATED_MESSAGE }
     return { error }
   }
 

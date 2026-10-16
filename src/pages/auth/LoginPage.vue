@@ -75,15 +75,17 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore, DEACTIVATED_MESSAGE } from '@/stores/auth'
 import AppLogo from '@/components/AppLogo.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const form = ref({ email: '', password: '' })
-const errorMsg = ref('')
+// Sent here after an admin deactivated the account while it was signed in
+const errorMsg = ref(route.query.deactivated ? DEACTIVATED_MESSAGE : '')
 const loading = ref(false)
 
 async function handleLogin() {

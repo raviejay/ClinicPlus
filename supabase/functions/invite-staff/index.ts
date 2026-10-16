@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     return json({ error: "Only clinic admins can add staff" }, 403);
   }
 
-  let payload: { email?: string; full_name?: string; role?: string };
+  let payload: { email?: string; full_name?: string; role?: string; branch_id?: string | null };
   try {
     payload = await req.json();
   } catch {
@@ -67,6 +67,19 @@ Deno.serve(async (req) => {
   if (!email || !fullName) return json({ error: "Email and full name are required" }, 400);
   if (payload.role !== "doctor" && payload.role !== "staff") {
     return json({ error: "Role must be doctor or staff" }, 400);
+  }
+
+  // An optional branch must belong to the caller's own clinic
+  let branchId: string | null = null;
+  if (payload.branch_id) {
+    const { data: branch } = await admin
+      .from("branches")
+      .select("id")
+      .eq("id", payload.branch_id)
+      .eq("clinic_id", caller.clinic_id)
+      .maybeSingle();
+    if (!branch) return json({ error: "Branch not found" }, 400);
+    branchId = branch.id;
   }
 
   const tempPassword = generateTempPassword();
@@ -85,6 +98,7 @@ Deno.serve(async (req) => {
     clinic_id: caller.clinic_id,
     full_name: fullName,
     role: payload.role,
+    branch_id: branchId,
   });
   if (profileError) {
     // Don't leave an orphaned auth user behind
@@ -92,5 +106,5 @@ Deno.serve(async (req) => {
     return json({ error: profileError.message }, 400);
   }
 
-  return json({ password: tempPassword });
+  return json({ password: tempPassword, email });
 });

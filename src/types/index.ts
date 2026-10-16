@@ -122,6 +122,8 @@ export interface Profile {
   branch_id: string | null
   full_name: string | null
   role: UserRole
+  /** False once an admin has deactivated the account */
+  is_active?: boolean
   created_at: string
 }
 
