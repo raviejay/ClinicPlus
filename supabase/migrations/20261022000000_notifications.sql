@@ -3,8 +3,8 @@
 -- When a patient books online, the clinic's team is told straight away (bell, toast, sound).
 --  * notifications: one row per event, per clinic. Members read; nobody writes from the browser.
 --  * profiles.notifications_seen_at: what each person has already looked at (unread = newer than this)
---  * a trigger on appointments creates the notification for ONLINE bookings only
---    (staff who book a patient themselves do not need an alert about their own action)
+--  * a trigger on appointments creates the notification for ONLINE bookings only: the ones made through
+--    the public booking function (staff who add a patient from the app do not need an alert about it)
 -- ============================================================
 begin;
 
@@ -44,14 +44,17 @@ grant select on public.notifications to authenticated;
 -- ------------------------------------------------------------
 -- Online booking -> notification
 -- ------------------------------------------------------------
+-- Runs as whoever inserted the row (not a definer), on purpose: an appointment added by the booking
+-- function runs as the function's owner, while one a signed-in team member adds from the app runs as
+-- "authenticated". That tells online bookings apart reliably, even when the visitor testing the public
+-- page happens to be signed in to the clinic in the same browser.
 create or replace function public.notify_new_online_appointment()
-returns trigger language plpgsql security definer set search_path = public as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   v_name text;
   v_when text;
 begin
-  -- A signed-in team member is booking for a patient: no alert. Online visitors are not signed in.
-  if auth.uid() is not null then return new; end if;
+  if current_user in ('authenticated', 'anon') then return new; end if;
   if new.status in ('cancelled', 'no_show', 'completed') then return new; end if;
 
   select full_name into v_name from public.patients where id = new.patient_id;

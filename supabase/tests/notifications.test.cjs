@@ -28,6 +28,10 @@ const MIGS = fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter(f =
     values ('${ids.clinicA}', '${ids.patA}', ${tomorrow}, '10:00', 'confirmed')`)
   check('staff booking a patient themselves does not notify', !r.error && (await notes()).length === 1, r.error)
 
+  r = await as(db, adminA, `select book_public_appointment('${ids.clinicA}', null, 'Tester Admin', '09175550000', null, ${tomorrow}, '10:30', null, null, null, null) as id`)
+  check('a signed-in admin trying the public booking page still creates one (same browser)', !r.error && (await notes()).length === 2, r.error)
+  await db.query(`delete from notifications where body like 'Tester Admin%'`)
+
   await book('11:00', branchN)
   list = await notes()
   check("a branch booking records the branch", list.length === 2 && list[1].branch_id === branchN)
