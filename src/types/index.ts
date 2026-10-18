@@ -158,6 +158,8 @@ export interface ClinicSettings {
   multi_branch_enabled: boolean
   /** Patients one time slot can take; null = one per doctor (unlimited if the clinic has no doctors) */
   slot_capacity?: number | null
+  /** The clinic's opening days and hours; null/absent = every day, hourly 8-5 with a lunch break */
+  booking_hours?: import('@/utils/bookingHours').BookingHours | null
 }
 
 export interface Subscription {

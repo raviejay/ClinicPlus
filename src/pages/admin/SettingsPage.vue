@@ -131,6 +131,17 @@
         </div>
       </div>
 
+      <!-- Booking hours -->
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-slate-50">
+          <h2 class="text-sm font-bold text-slate-900">Booking Hours</h2>
+          <p class="text-xs text-slate-400 mt-0.5">When patients can book online. Saved with the Save Settings button below.</p>
+        </div>
+        <div class="p-5">
+          <BookingHoursEditor v-model="bookingHours" />
+        </div>
+      </div>
+
       <!-- Save -->
       <div v-if="successMsg" class="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
         <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -353,7 +364,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { isValidEmail } from '@/utils/booking'
+import { isValidEmail, manilaToday } from '@/utils/booking'
 import { useAuthStore } from '@/stores/auth'
 import { useClinic } from '@/composables/useClinic'
 import { useBranchStore } from '@/stores/branch'
@@ -362,6 +373,8 @@ import { clinicServicesService } from '@/services/clinic-services.service'
 import AppLayout from '@/layouts/AppLayout.vue'
 import BookingLinkCard from '@/components/BookingLinkCard.vue'
 import LocationPicker from './LocationPicker.vue'
+import BookingHoursEditor from './BookingHoursEditor.vue'
+import { dropPastDates, hasProblems, normalizeBookingHours, validateBookingHours } from '@/utils/bookingHours'
 import type { ClinicService, Branch } from '@/types'
 
 const authStore = useAuthStore()
@@ -422,6 +435,9 @@ async function copyBookingLink() {
   } catch { /* clipboard blocked: the link is shown beside the field anyway */ }
 }
 
+// When patients can book (days, hours, break, appointment length, closed dates)
+const bookingHours = ref(normalizeBookingHours(authStore.clinicSettings?.booking_hours))
+
 const settingsForm = ref({
   booking_mode: authStore.clinicSettings?.booking_mode ?? 'auto_assign',
   queue_enabled: authStore.clinicSettings?.queue_enabled ?? false,
@@ -448,6 +464,11 @@ async function saveSettings() {
     errorMsg.value = Object.values(fieldErrors.value).find(Boolean) ?? ''
     return
   }
+  const hoursProblems = validateBookingHours(bookingHours.value)
+  if (hasProblems(hoursProblems)) {
+    errorMsg.value = 'Please fix the booking hours first: ' + ([...hoursProblems.general, ...Object.values(hoursProblems.days)][0] ?? '')
+    return
+  }
   saving.value = true
   errorMsg.value = ''
   successMsg.value = ''
@@ -470,6 +491,8 @@ async function saveSettings() {
     supabase.from('clinic_settings')
       .update({
         ...settingsForm.value,
+        // Closed dates that have already passed are dropped, so the list does not grow forever
+        booking_hours: { ...bookingHours.value, closed_dates: dropPastDates(bookingHours.value.closed_dates, manilaToday()) },
         // An emptied number input is '' — store that as "automatic"
         slot_capacity: Number(settingsForm.value.slot_capacity) >= 1
           ? Math.min(50, Math.floor(Number(settingsForm.value.slot_capacity)))
@@ -488,6 +511,7 @@ async function saveSettings() {
   }
 
   await authStore.loadClinic(clinicId)
+  bookingHours.value = normalizeBookingHours(authStore.clinicSettings?.booking_hours)
   successMsg.value = 'Settings saved successfully.'
   setTimeout(() => successMsg.value = '', 3000)
 }

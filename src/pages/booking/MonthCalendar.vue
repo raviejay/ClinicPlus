@@ -19,10 +19,10 @@
     <div class="grid grid-cols-7 gap-y-1">
       <template v-for="(week, wi) in weeks" :key="wi">
         <div v-for="(iso, di) in week" :key="`${wi}-${di}`" class="flex items-center justify-center">
-          <button v-if="iso" type="button" :disabled="iso < min || iso > max" :aria-pressed="iso === modelValue"
+          <button v-if="iso" type="button" :disabled="iso < min || iso > max || isClosed?.(iso)" :aria-pressed="iso === modelValue"
             :aria-label="ariaLabel(iso)" @click="$emit('update:modelValue', iso)"
             :class="['relative w-10 h-10 sm:w-11 sm:h-11 rounded-full text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-              iso === modelValue ? 'text-white shadow-md scale-105' : iso < min || iso > max ? 'text-slate-300 cursor-not-allowed' : 'text-slate-700 hover:bg-slate-100 active:scale-95']"
+              iso === modelValue ? 'text-white shadow-md scale-105' : iso < min || iso > max ? 'text-slate-300 cursor-not-allowed' : isClosed?.(iso) ? 'text-slate-300 line-through cursor-not-allowed' : 'text-slate-700 hover:bg-slate-100 active:scale-95']"
             :style="iso === modelValue ? { background: primaryColor } : {}">
             {{ Number(iso.slice(8)) }}
             <span v-if="iso === min && iso !== modelValue" class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" :style="{ background: primaryColor }"></span>
@@ -45,6 +45,8 @@ const props = defineProps<{
   /** Earliest bookable date (today in Manila) */
   min: string
   primaryColor: string
+  /** True for a date the clinic takes no bookings */
+  isClosed?: (iso: string) => boolean
 }>()
 defineEmits<{ (e: 'update:modelValue', v: string): void }>()
 
@@ -65,5 +67,6 @@ function go(delta: number) {
   view.value = shiftMonth(view.value.year, view.value.month, delta)
 }
 
-const ariaLabel = (iso: string) => formatLongDate(iso) + (iso === props.min ? ' (today)' : '')
+const ariaLabel = (iso: string) =>
+  formatLongDate(iso) + (iso === props.min ? ' (today)' : '') + (props.isClosed?.(iso) ? ' (closed)' : '')
 </script>

@@ -9,9 +9,11 @@
 
       <div class="grid grid-cols-7 gap-1 flex-1" role="group" aria-label="Choose a date">
         <button v-for="day in week" :key="day.iso" type="button" @click="$emit('update:modelValue', day.iso)"
+          :disabled="day.closed" :title="day.closed ? 'The clinic is closed' : ''"
           :aria-pressed="day.iso === modelValue"
           :class="['flex flex-col items-center py-2 border transition-all active:scale-95 focus:outline-none focus-visible:ring-2',
             refined ? 'rounded-lg' : 'rounded-xl',
+            day.closed ? 'bg-slate-50 border-dashed border-gray-200 text-slate-300 cursor-not-allowed' :
             day.iso === modelValue ? 'text-white border-transparent shadow-sm' : refined ? 'bg-transparent border-stone-200 text-stone-600 hover:border-stone-400' : 'bg-white border-gray-200 text-slate-600 hover:bg-slate-50']"
           :style="day.iso === modelValue ? { background: primaryColor } : {}">
           <span :class="['text-[10px] font-bold uppercase tracking-wide',
@@ -20,7 +22,7 @@
           </span>
           <span :class="['text-base font-black leading-tight', refined && 'font-display']">{{ day.day }}</span>
           <span :class="['text-[10px] font-semibold', day.iso === modelValue ? 'text-white/80' : 'text-slate-400']">
-            {{ day.month }}
+            {{ day.closed ? 'Closed' : day.month }}
           </span>
         </button>
       </div>
@@ -56,6 +58,8 @@ const props = defineProps<{
   min: string
   primaryColor: string
   look?: 'classic' | 'refined'
+  /** True for a date the clinic takes no bookings */
+  isClosed?: (iso: string) => boolean
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
@@ -77,7 +81,10 @@ const week = computed(() =>
   Array.from({ length: 7 }, (_, i) => {
     const iso = addDays(props.min, offset.value + i)
     const weekday = new Date(`${iso}T00:00:00Z`).getUTCDay()
-    return { iso, ...dateParts(iso), isToday: iso === props.min, isWeekend: weekday === 0 || weekday === 6 }
+    return {
+      iso, ...dateParts(iso), isToday: iso === props.min, isWeekend: weekday === 0 || weekday === 6,
+      closed: props.isClosed?.(iso) ?? false,
+    }
   }),
 )
 
@@ -88,6 +95,6 @@ function shift(direction: 1 | -1) {
 }
 
 function onPick(value: string) {
-  if (value && value >= props.min && value <= maxDate.value) emit('update:modelValue', value)
+  if (value && value >= props.min && value <= maxDate.value && !props.isClosed?.(value)) emit('update:modelValue', value)
 }
 </script>

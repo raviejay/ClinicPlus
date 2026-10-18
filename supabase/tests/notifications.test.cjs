@@ -14,25 +14,25 @@ const MIGS = fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter(f =
   const tomorrow = `current_date + 1`
   const notes = async () => (await db.query('select * from notifications order by created_at')).rows
   const book = (slot, branch = null, name = 'Juan Cruz') => as(db, 'anon',
-    `select book_public_appointment('${ids.clinicA}', ${branch ? `'${branch}'` : 'null'}, '${name}', '0917${slot.replace(':', '')}', null, ${tomorrow}, '${slot}', null, 'cat', 'Consultation', null) as id`)
+    `select book_public_appointment('${ids.clinicA}', ${branch ? `'${branch}'` : 'null'}, '${name}', '0917${slot.replace(/\D/g, '')}', null, ${tomorrow}, '${slot}', null, 'cat', 'Consultation', null) as id`)
 
   console.log('creating notifications')
-  let r = await book('09:00')
+  let r = await book('9:00 AM')
   check('an online booking works', !r.error, r.error)
   let list = await notes()
   check('and creates one notification for the clinic', list.length === 1 && list[0].clinic_id === ids.clinicA, JSON.stringify(list))
-  check('naming the patient, the day, the time and the service', /Juan Cruz/.test(list[0].body) && /09:00/.test(list[0].body) && /Consultation/.test(list[0].body), list[0]?.body)
+  check('naming the patient, the day, the time and the service', /Juan Cruz/.test(list[0].body) && /9:00 AM/.test(list[0].body) && /Consultation/.test(list[0].body), list[0]?.body)
   check('typed as a new appointment, linked to it', list[0].type === 'new_appointment' && list[0].appointment_id === r.rows[0].id)
 
   r = await as(db, staffA, `insert into appointments(clinic_id, patient_id, appointment_date, time_slot, status)
-    values ('${ids.clinicA}', '${ids.patA}', ${tomorrow}, '10:00', 'confirmed')`)
+    values ('${ids.clinicA}', '${ids.patA}', ${tomorrow}, '10:00 AM', 'confirmed')`)
   check('staff booking a patient themselves does not notify', !r.error && (await notes()).length === 1, r.error)
 
-  r = await as(db, adminA, `select book_public_appointment('${ids.clinicA}', null, 'Tester Admin', '09175550000', null, ${tomorrow}, '10:30', null, null, null, null) as id`)
+  r = await as(db, adminA, `select book_public_appointment('${ids.clinicA}', null, 'Tester Admin', '09175550000', null, ${tomorrow}, '3:00 PM', null, null, null, null) as id`)
   check('a signed-in admin trying the public booking page still creates one (same browser)', !r.error && (await notes()).length === 2, r.error)
   await db.query(`delete from notifications where body like 'Tester Admin%'`)
 
-  await book('11:00', branchN)
+  await book('11:00 AM', branchN)
   list = await notes()
   check("a branch booking records the branch", list.length === 2 && list[1].branch_id === branchN)
 
@@ -49,7 +49,7 @@ const MIGS = fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter(f =
   await db.query(`update profiles set branch_id='${branchS}' where id='${ids.staffA}'`)
   r = await as(db, staffA, 'select count(*)::int as n from notifications')
   check("staff limited to the South branch see neither North's nor the main clinic's", r.rows[0].n === 0, JSON.stringify(r.rows))
-  await book('13:00', branchS, 'Maria Santos')
+  await book('1:00 PM', branchS, 'Maria Santos')
   r = await as(db, staffA, 'select body from notifications')
   check('but see South', r.rows.length === 1 && /Maria Santos/.test(r.rows[0].body))
   await db.query(`update profiles set branch_id=null where id='${ids.staffA}'`)
@@ -66,7 +66,7 @@ const MIGS = fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter(f =
   r = await as(db, staffA, `update profiles set notifications_seen_at = now() where id='${ids.staffA}' returning notifications_seen_at`)
   check('people can mark their own as seen', !r.error && !!r.rows[0]?.notifications_seen_at, r.error)
   await db.query(`update notifications set created_at = now() - interval '31 days' where id = (select id from notifications order by created_at limit 1)`)
-  await book('14:00')
+  await book('2:00 PM')
   check('notifications older than 30 days are cleared', (await db.query(`select count(*)::int n from notifications where created_at < now() - interval '30 days'`)).rows[0].n === 0)
 
   summary()

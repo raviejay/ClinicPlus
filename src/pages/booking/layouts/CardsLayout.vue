@@ -69,7 +69,7 @@
                 <p class="text-sm text-slate-400 mb-5">Times already taken are crossed out.</p>
                 <div class="grid md:grid-cols-[18rem_1fr] gap-6">
                   <div class="md:border-r md:border-gray-100 md:pr-6">
-                    <MonthCalendar v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" />
+                    <MonthCalendar v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" :is-closed="ctx.isClosed" />
                   </div>
                   <SchedulePicker calendar="none" :notes="false" />
                 </div>

@@ -12,38 +12,12 @@ export interface BookingAvailability {
   error: boolean
 }
 
-export interface SlotDef {
-  label: string
-  /** Minutes after midnight, clinic local time */
-  minutes: number
-  period: 'morning' | 'afternoon'
-}
-
 /** Parses '9:00 AM' / '1:30 PM' into minutes after midnight. Null if it isn't that format. */
 export function slotMinutes(label: string): number | null {
   const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(label.trim())
   if (!m) return null
   const hours = (Number(m[1]) % 12) + (m[3].toUpperCase() === 'PM' ? 12 : 0)
   return hours * 60 + Number(m[2])
-}
-
-const SLOT_LABELS = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM']
-
-export const BOOKING_SLOTS: SlotDef[] = SLOT_LABELS.map(label => {
-  const minutes = slotMinutes(label) ?? 0
-  return { label, minutes, period: minutes < 12 * 60 ? 'morning' : 'afternoon' }
-})
-
-/** "8:00 AM – 5:00 PM", derived from the slot list (each slot is one hour) */
-export function openingHoursLabel(): string {
-  const first = BOOKING_SLOTS[0]
-  const last = BOOKING_SLOTS[BOOKING_SLOTS.length - 1]
-  const fmt = (mins: number) => {
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
-  }
-  return `${fmt(first.minutes)} – ${fmt(last.minutes + 60)}`
 }
 
 // ── Dates (ISO 'YYYY-MM-DD'; the clinic runs on Philippine time) ──

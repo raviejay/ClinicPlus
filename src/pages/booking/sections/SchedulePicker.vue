@@ -8,8 +8,8 @@
       </button>
     </div>
 
-    <MonthCalendar v-if="calendar === 'month'" v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" />
-    <DateStrip v-else-if="calendar === 'strip'" v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" :look="look" />
+    <MonthCalendar v-if="calendar === 'month'" v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" :is-closed="ctx.isClosed" />
+    <DateStrip v-else-if="calendar === 'strip'" v-model="ctx.form.appointment_date" :min="ctx.today" :primary-color="ctx.primaryColor" :look="look" :is-closed="ctx.isClosed" />
 
     <!-- Doctor first: availability depends on who you see -->
     <div v-if="ctx.showDoctorSelect && ctx.doctors.length > 0">
@@ -41,7 +41,7 @@
         Couldn't check live availability. Times shown may be out of date — we'll confirm when you book.
       </div>
 
-      <TimeSlotPicker v-model:selected="ctx.form.time_slot" :booked="ctx.availability.booked"
+      <TimeSlotPicker v-model:selected="ctx.form.time_slot" :slots="ctx.slots" :booked="ctx.availability.booked"
         :date="ctx.form.appointment_date" :today="ctx.availability.today || ctx.today" :now-minutes="ctx.availability.minutes"
         :loading="ctx.availability.loading && !ctx.availability.loadedOnce" :primary-color="ctx.primaryColor"
         :look="look" @next-day="nextDay" />
@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { addDays } from '@/utils/booking'
+import { nextOpenDay } from '@/utils/bookingHours'
 import { useBooking } from '../bookingContext'
 import DateStrip from '../DateStrip.vue'
 import MonthCalendar from '../MonthCalendar.vue'
@@ -82,7 +82,9 @@ const labelClass = computed(() =>
     ? 'block text-[11px] font-semibold text-stone-500 mb-1 uppercase tracking-[0.14em]'
     : 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider')
 
+// "Try next day" skips the days the clinic is closed
 function nextDay() {
-  ctx.form.appointment_date = addDays(ctx.form.appointment_date, 1)
+  const next = nextOpenDay(ctx.hours, ctx.form.appointment_date)
+  if (next) ctx.form.appointment_date = next
 }
 </script>

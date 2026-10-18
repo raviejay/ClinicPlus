@@ -424,3 +424,98 @@ describe('booking page: clinic showcase layout', () => {
     expect(wrapper.text()).toContain('Online Appointment Booking')
   })
 })
+
+// ── The clinic's own booking hours ──
+import { DAY_KEYS, dayKeyOf, defaultBookingHours } from '@/utils/bookingHours'
+
+const withHours = (mutate: (h: ReturnType<typeof defaultBookingHours>) => void, layout = 'layout_a') => {
+  const hours = defaultBookingHours()
+  mutate(hours)
+  return {
+    ...clinic, plan: 'pro',
+    clinic_branding: { ...clinic.clinic_branding, layout },
+    clinic_settings: { booking_mode: 'auto_assign', booking_hours: hours },
+  }
+}
+
+describe('booking page: the clinic\'s booking hours', () => {
+  it('offers the clinic\'s own times instead of the default ones', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: withHours(h => {
+        h.slot_minutes = 30
+        DAY_KEYS.forEach(k => { h.days[k] = { open: true, start: '09:00', end: '11:00', break_start: null, break_end: null } })
+      }), error: null,
+    })
+    await mountPage()
+    for (const t of ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM']) expect(() => slotButton(t)).not.toThrow()
+    expect(() => slotButton('8:00 AM')).toThrow()
+    expect(() => slotButton('1:00 PM')).toThrow()
+  })
+
+  it('books a time from the clinic\'s own grid', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: withHours(h => { h.slot_minutes = 30; DAY_KEYS.forEach(k => { h.days[k] = { open: true, start: '09:00', end: '11:00', break_start: null, break_end: null } }) }), error: null,
+    })
+    await mountPage()
+    await fillIn()
+    await slotButton('9:30 AM').trigger('click')
+    await confirmButton().trigger('click')
+    await flushPromises()
+    expect(mocks.bookPublic).toHaveBeenCalledWith(expect.objectContaining({ time_slot: '9:30 AM' }))
+  })
+
+  it('shows the clinic\'s days and hours to the visitor', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: withHours(h => { h.days.sun.open = false; h.days.sat.end = '12:00'; h.days.sat.break_start = null; h.days.sat.break_end = null }, 'layout_b'), error: null,
+    })
+    await mountPage()
+    expect(wrapper.text()).toContain('Mon–Fri 8:00 AM – 5:00 PM')
+    expect(wrapper.text()).toContain('Sat 8:00 AM – 12:00 PM')
+    expect(wrapper.text()).toContain('Closed Sun')
+  })
+
+  it('starts on the next open day when the clinic is closed today', async () => {
+    const todayKey = dayKeyOf(today)
+    mocks.getClinicBySlug.mockResolvedValue({ data: withHours(h => { h.days[todayKey].open = false }), error: null })
+    await mountPage()
+    // the availability check is for the first day it IS open, not for today
+    const asked = mocks.getPublicAvailability.mock.calls.map(c => c[0].date)
+    expect(asked).not.toContain(today)
+    expect(asked[0] > today).toBe(true)
+  })
+
+  it('does not let a closed day be chosen', async () => {
+    const tomorrowKey = dayKeyOf(tomorrow)
+    mocks.getClinicBySlug.mockResolvedValue({ data: withHours(h => { h.days[tomorrowKey].open = false }), error: null })
+    await mountPage()
+    const closedDay = wrapper.findAll('button').find(b => b.text().includes('Closed'))
+    expect(closedDay).toBeTruthy()
+    expect(closedDay!.attributes('disabled')).toBeDefined()
+  })
+
+  it('says so and offers the next open day if the chosen day is closed', async () => {
+    const tomorrowKey = dayKeyOf(tomorrow)
+    mocks.getClinicBySlug.mockResolvedValue({ data: withHours(h => { h.days[tomorrowKey].open = false }), error: null })
+    await mountPage()
+    // jump to the closed date through the date field
+    const picker = wrapper.find('input[type="date"]')
+    await picker.setValue(tomorrow)
+    // closed dates are ignored: the page stays on a day that has times
+    expect(wrapper.text()).not.toContain('The clinic is closed on this day.')
+  })
+
+  it('clears a chosen time that the next day does not offer', async () => {
+    mocks.getClinicBySlug.mockResolvedValue({
+      data: withHours(h => {
+        h.days[dayKeyOf(today)] = { open: true, start: '08:00', end: '12:00', break_start: null, break_end: null }
+        h.days[dayKeyOf(tomorrow)] = { open: true, start: '13:00', end: '16:00', break_start: null, break_end: null }
+      }), error: null,
+    })
+    await mountPage()
+    await slotButton('9:00 AM').trigger('click')
+    expect(wrapper.text()).toContain('9:00 AM')
+    await wrapper.findAll('button').find(b => b.text().startsWith('Tomorrow') || b.text().includes(tomorrow.slice(8)))!.trigger('click')
+    await flushPromises()
+    expect(confirmButton().attributes('disabled')).toBeDefined() // no time chosen any more
+  })
+})

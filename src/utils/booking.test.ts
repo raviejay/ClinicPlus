@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addDays, BOOKING_SLOTS, bookingReference, buildIcs, daysBetween, isValidEmail, isValidPhone,
-  manilaToday, openingHoursLabel, slotLoadLabel, slotMinutes,
+  addDays, bookingReference, buildIcs, daysBetween, isValidEmail, isValidPhone,
+  manilaToday, slotLoadLabel, slotMinutes,
   bookingLocation, directionsUrl, mapEmbedUrl, monthLabel, monthMatrix, shiftMonth, telUrl,
 } from './booking'
 
@@ -14,17 +14,6 @@ describe('slotMinutes', () => {
   })
   it('returns null for free text', () => {
     expect(slotMinutes('whenever')).toBeNull()
-  })
-})
-
-describe('slots', () => {
-  it('are split into morning and afternoon', () => {
-    expect(BOOKING_SLOTS.filter(s => s.period === 'morning').map(s => s.label))
-      .toEqual(['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'])
-    expect(BOOKING_SLOTS.filter(s => s.period === 'afternoon')).toHaveLength(4)
-  })
-  it('derive the opening hours label', () => {
-    expect(openingHoursLabel()).toBe('8:00 AM – 5:00 PM')
   })
 })
 

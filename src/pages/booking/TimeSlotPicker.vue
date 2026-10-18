@@ -17,8 +17,18 @@
       </span>
     </div>
 
+    <!-- Closed -->
+    <div v-if="!slots.length" class="flex items-center gap-3 bg-slate-50 border border-gray-200 rounded-xl px-4 py-3">
+      <span class="material-icons text-slate-400 text-[20px] shrink-0">event_busy</span>
+      <p class="text-sm text-slate-600 flex-1">The clinic is closed on this day.</p>
+      <button type="button" @click="$emit('next-day')"
+        class="text-xs font-bold px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-slate-700 hover:bg-slate-100 transition-colors shrink-0">
+        Next open day
+      </button>
+    </div>
+
     <!-- Loading skeleton -->
-    <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-busy="true" aria-label="Checking availability">
+    <div v-else-if="loading" class="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-busy="true" aria-label="Checking availability">
       <div v-for="n in 8" :key="n" :class="['h-[46px] bg-slate-100 animate-pulse', refined ? 'rounded-full' : 'rounded-xl']"></div>
     </div>
 
@@ -66,10 +76,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BOOKING_SLOTS } from '@/utils/booking'
+import type { Slot } from '@/utils/bookingHours'
 
 const props = defineProps<{
   selected: string
+  /** The times the clinic offers on this date (empty when it is closed) */
+  slots: Slot[]
   /** Slot labels that are already taken for the chosen date (and doctor) */
   booked: string[]
   /** The date being viewed, and the clinic's current date/time, for graying out past times */
@@ -91,7 +103,7 @@ const refined = computed(() => props.look === 'refined')
 type SlotState = 'available' | 'booked' | 'past'
 
 const states = computed(() =>
-  BOOKING_SLOTS.map(slot => {
+  props.slots.map(slot => {
     const isPast = props.date === props.today && slot.minutes <= props.nowMinutes
     const state: SlotState = isPast ? 'past' : props.booked.includes(slot.label) ? 'booked' : 'available'
     return { ...slot, state }

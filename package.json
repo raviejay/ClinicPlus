@@ -8,7 +8,7 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "test:db": "node supabase/tests/security.test.cjs && node supabase/tests/custom-theme.test.cjs && node supabase/tests/revenue.test.cjs && node supabase/tests/documents.test.cjs && node supabase/tests/clinic-contact.test.cjs && node supabase/tests/staff-management.test.cjs && node supabase/tests/notifications.test.cjs",
+    "test:db": "node supabase/tests/security.test.cjs && node supabase/tests/custom-theme.test.cjs && node supabase/tests/revenue.test.cjs && node supabase/tests/documents.test.cjs && node supabase/tests/clinic-contact.test.cjs && node supabase/tests/staff-management.test.cjs && node supabase/tests/notifications.test.cjs && node supabase/tests/booking-hours.test.cjs",
     "test": "vitest run"
   },
   "dependencies": {

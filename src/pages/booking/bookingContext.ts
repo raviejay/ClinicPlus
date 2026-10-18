@@ -3,6 +3,7 @@
 
 import { inject, provide, type InjectionKey } from 'vue'
 import type { BookingAvailability, LocationInfo } from '@/utils/booking'
+import type { BookingHours, Slot } from '@/utils/bookingHours'
 import type { Branch, Clinic, ClinicServiceCategory } from '@/types'
 
 export interface BookingFormState {
@@ -21,8 +22,14 @@ export interface BookingCtx {
   clinic: Clinic
   branch: Branch | null
   location: LocationInfo
-  /** "8:00 AM – 5:00 PM" */
+  /** "Mon–Sat 8:00 AM – 5:00 PM" */
   openingHours: string
+  /** The clinic's booking hours (Settings) */
+  hours: BookingHours
+  /** The times offered on the chosen date (empty when the clinic is closed) */
+  slots: Slot[]
+  /** True for a date the clinic takes no bookings */
+  isClosed(iso: string): boolean
   form: BookingFormState
   primaryColor: string
   secondaryColor: string

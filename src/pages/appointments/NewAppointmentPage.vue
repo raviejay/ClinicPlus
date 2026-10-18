@@ -298,6 +298,17 @@
                     </span>
                   </button>
                 </div>
+                <p v-if="clinicClosedToday" class="mt-2 flex items-start gap-1.5 text-xs text-slate-600 bg-slate-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <span class="material-icons text-[14px] mt-px">event_busy</span>
+                  The clinic's booking hours are closed on this day. You can still book a time below.
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <label for="custom-time" class="text-xs text-slate-500 shrink-0">Other time</label>
+                  <input id="custom-time" v-model="customTime" type="time" @change="useCustomTime"
+                    :class="['border rounded-lg px-2.5 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400',
+                      customSelected ? 'border-sky-400' : 'border-gray-200']" />
+                  <span v-if="customSelected" class="text-xs font-semibold text-sky-600">{{ form.time_slot }} selected</span>
+                </div>
                 <p v-if="selectedSlotNote" class="mt-2 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   <span class="material-icons text-[14px] mt-px">info</span>
                   {{ selectedSlotNote }}
@@ -433,6 +444,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import type { Patient, ClinicPlan, ClinicServiceCategory } from '@/types'
 import { SERVICE_CATEGORIES } from '@/types'
 import { manilaToday, slotLoadLabel } from '@/utils/booking'
+import { normalizeBookingHours, slotsFor, timeLabel } from '@/utils/bookingHours'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -474,11 +486,18 @@ const form = ref({
   notes: '',
 })
 
-const timeSlots = [
-  '9:00 AM', '9:30 AM', '10:00 AM',
-  '10:30 AM', '11:00 AM', '11:30 AM',
-  '1:00 PM', '1:30 PM', '2:00 PM',
-]
+// The clinic's own times for the chosen day (Settings > Booking hours). Staff are not limited by them:
+// a custom time can always be entered for walk-ins and squeeze-ins.
+const hours = computed(() => normalizeBookingHours(authStore.clinicSettings?.booking_hours))
+const timeSlots = computed(() => slotsFor(hours.value, form.value.appointment_date).map(s => s.label))
+const clinicClosedToday = computed(() => !!form.value.appointment_date && timeSlots.value.length === 0)
+
+// Any other time, chosen on a clock
+const customTime = ref('')
+const customSelected = computed(() => !!form.value.time_slot && !timeSlots.value.includes(form.value.time_slot))
+function useCustomTime() {
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(customTime.value)) form.value.time_slot = timeLabel(customTime.value)
+}
 
 // ── How busy each time is (informational only — staff may always squeeze people in) ──
 const bookedOnDate = ref<{ time_slot: string; doctor_id: string | null }[]>([])

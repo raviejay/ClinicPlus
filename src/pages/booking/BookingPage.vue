@@ -107,8 +107,9 @@ import type { Clinic, ClinicSettings, ClinicBranding, ClinicPlan, Branch, Clinic
 import { SERVICE_CATEGORIES } from '@/types'
 import {
   type BookingAvailability, bookingReference, buildIcs, downloadTextFile, formatLongDate,
-  bookingLocation, isValidEmail, isValidPhone, manilaToday, openingHoursLabel, slotMinutes,
+  bookingLocation, isValidEmail, isValidPhone, manilaToday, slotMinutes,
 } from '@/utils/booking'
+import { firstOpenDay, hoursSummary, isOpenOn, normalizeBookingHours, slotsFor } from '@/utils/bookingHours'
 import { provideBooking, type BookingCtx } from './bookingContext'
 import ClassicLayout from './layouts/ClassicLayout.vue'
 import CardsLayout from './layouts/CardsLayout.vue'
@@ -140,7 +141,6 @@ const selectedCategory = ref<ClinicServiceCategory | null>(null)
 const categories = ref<ClinicServiceCategory[]>(SERVICE_CATEGORIES)
 const bookedAppointmentId = ref('')
 const reference = computed(() => (bookedAppointmentId.value ? bookingReference(bookedAppointmentId.value) : ''))
-const openingHours = openingHoursLabel()
 
 // 0 = your info, 1 = service, 2 = schedule
 const currentStep = computed(() => {
@@ -151,6 +151,12 @@ const currentStep = computed(() => {
 
 // Philippine date, whatever the visitor's device clock/time zone says
 const today = manilaToday()
+
+// The clinic's own opening days and hours (Settings > Booking hours)
+const hours = computed(() => normalizeBookingHours(settings.value?.booking_hours))
+const openingHours = computed(() => hoursSummary(hours.value))
+const slots = computed(() => slotsFor(hours.value, form.value.appointment_date))
+const isClosed = (iso: string) => !isOpenOn(hours.value, iso)
 const form = ref({
   full_name: '',
   contact_number: '',
@@ -207,7 +213,8 @@ const canSubmit = computed(() =>
   form.value.full_name.trim().length >= 2 &&
   isValidPhone(form.value.contact_number) &&
   (!form.value.email.trim() || isValidEmail(form.value.email)) &&
-  Boolean(form.value.appointment_date && form.value.time_slot)
+  Boolean(form.value.appointment_date && form.value.time_slot) &&
+  slots.value.some(s => s.label === form.value.time_slot)
 )
 
 const brandStyle = computed(() => ({
@@ -267,6 +274,10 @@ watch(() => [form.value.appointment_date, form.value.doctor_id], () => {
   availability.value = { ...availability.value, booked: [], loadedOnce: false }
   loadAvailability()
 })
+// A time that the new date does not offer (another day, or a closed one) is cleared
+watch(() => form.value.appointment_date, () => {
+  if (form.value.time_slot && !slots.value.some(s => s.label === form.value.time_slot)) form.value.time_slot = ''
+})
 // Picking a time dismisses the notice; clearing it programmatically (stale time) must not
 watch(() => form.value.time_slot, slot => { if (slot) notice.value = '' })
 
@@ -284,7 +295,7 @@ function resetForm() {
   notice.value = ''
   form.value = {
     full_name: '', contact_number: '', email: '',
-    appointment_date: today, time_slot: '',
+    appointment_date: firstOpenDay(hours.value, today) ?? today, time_slot: '',
     doctor_id: '', service_name: '', service_category: '', notes: '',
   }
   loadAvailability()
@@ -365,7 +376,7 @@ const missing = computed(() => {
 
 // Layouts read everything through this; refs unwrap because the object is reactive
 provideBooking(reactive({
-  clinic, branch, location, openingHours, form, primaryColor, secondaryColor,
+  clinic, branch, location, openingHours, hours, slots, isClosed, form, primaryColor, secondaryColor,
   logoUrl: computed(() => branding.value?.logo_url ?? null),
   categories, selectedCategory, doctors, showDoctorSelect, today, availability,
   errorMsg, notice, saving, canSubmit, missing, currentStep,
@@ -400,7 +411,10 @@ onMounted(async () => {
     if (servicesRes.data && servicesRes.data.length > 0) categories.value = servicesRes.data
     doctors.value = doctorList
 
-    loadAvailability()
+    // Start on the first day the clinic is open (today may be a closed day)
+    const start = firstOpenDay(hours.value, today)
+    if (start && start !== form.value.appointment_date) form.value.appointment_date = start
+    else loadAvailability()
     pollTimer = window.setInterval(refreshIfVisible, 20_000)
     document.addEventListener('visibilitychange', refreshIfVisible)
   }
