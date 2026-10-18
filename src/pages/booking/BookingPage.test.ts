@@ -42,8 +42,10 @@ const availability = (booked: string[] = [], minutes = 0, day = today) =>
 
 let wrapper: VueWrapper
 
+// Times are shown as the whole appointment ('9:00 – 10:00 AM'); the test names a slot by its start ('9:00 AM')
 const slotButton = (label: string) => {
-  const found = wrapper.findAll('button').find(b => b.text().startsWith(label))
+  const clock = label.replace(/ [AP]M$/, '')
+  const found = wrapper.findAll('button').find(b => new RegExp(`^${clock} ([AP]M )?–`).test(b.text()))
   if (!found) throw new Error(`no slot button "${label}"`)
   return found
 }
@@ -365,7 +367,7 @@ describe('booking page: guided cards layout', () => {
     await mountPage()
     await walkToReview()
     expect(wrapper.text()).toContain('Juan Dela Cruz')
-    expect(wrapper.text()).toContain('9:00 AM')
+    expect(wrapper.text()).toContain('9:00 – 10:00 AM') // the whole appointment, not just its start
     await confirmButton().trigger('click')
     await flushPromises()
     expect(mocks.bookPublic).toHaveBeenCalledWith(expect.objectContaining({ full_name: 'Juan Dela Cruz', time_slot: '9:00 AM' }))

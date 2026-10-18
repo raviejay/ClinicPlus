@@ -53,7 +53,7 @@
           </div>
           <div v-if="form.time_slot" class="flex items-center gap-3">
             <span class="material-icons text-slate-400 text-[18px]">schedule</span>
-            <span class="text-sm text-slate-700">{{ form.time_slot }}</span>
+            <span class="text-sm text-slate-700">{{ timeRange(form.time_slot) }}</span>
           </div>
           <div v-if="form.service_name" class="flex items-center gap-3">
             <span class="material-icons text-slate-400 text-[18px]">medical_services</span>
@@ -109,7 +109,7 @@ import {
   type BookingAvailability, bookingReference, buildIcs, downloadTextFile, formatLongDate,
   bookingLocation, isValidEmail, isValidPhone, manilaToday, slotMinutes,
 } from '@/utils/booking'
-import { firstOpenDay, hoursSummary, isOpenOn, normalizeBookingHours, slotsFor } from '@/utils/bookingHours'
+import { displayTime, firstOpenDay, hoursSummary, isOpenOn, normalizeBookingHours, slotsFor } from '@/utils/bookingHours'
 import { provideBooking, type BookingCtx } from './bookingContext'
 import ClassicLayout from './layouts/ClassicLayout.vue'
 import CardsLayout from './layouts/CardsLayout.vue'
@@ -157,6 +157,7 @@ const hours = computed(() => normalizeBookingHours(settings.value?.booking_hours
 const openingHours = computed(() => hoursSummary(hours.value))
 const slots = computed(() => slotsFor(hours.value, form.value.appointment_date))
 const isClosed = (iso: string) => !isOpenOn(hours.value, iso)
+const timeRange = (label: string) => displayTime(hours.value, form.value.appointment_date, label)
 const form = ref({
   full_name: '',
   contact_number: '',
@@ -356,6 +357,8 @@ function addToCalendar() {
     location: where,
     date: form.value.appointment_date,
     slot: form.value.time_slot,
+    // as long as the appointment the clinic offered
+    durationMinutes: (() => { const s = slots.value.find(x => x.label === form.value.time_slot); return s ? s.end - s.minutes : undefined })(),
   })
   downloadTextFile('appointment.ics', ics)
 }
@@ -376,7 +379,7 @@ const missing = computed(() => {
 
 // Layouts read everything through this; refs unwrap because the object is reactive
 provideBooking(reactive({
-  clinic, branch, location, openingHours, hours, slots, isClosed, form, primaryColor, secondaryColor,
+  clinic, branch, location, openingHours, hours, slots, isClosed, timeRange, form, primaryColor, secondaryColor,
   logoUrl: computed(() => branding.value?.logo_url ?? null),
   categories, selectedCategory, doctors, showDoctorSelect, today, availability,
   errorMsg, notice, saving, canSubmit, missing, currentStep,

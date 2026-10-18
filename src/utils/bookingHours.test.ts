@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   addClosedDate, DAY_KEYS, defaultBookingHours, dropPastDates, firstOpenDay, hasProblems, hoursLines, hoursSummary,
-  isOpenOn, minutesLabel, nextOpenDay, normalizeBookingHours, removeClosedDate, slotsFor, timeLabel,
+  displayTime, isOpenOn, isValidLength, lengthFor, minutesLabel, nextOpenDay, rangeLabel, normalizeBookingHours, removeClosedDate, slotsFor, timeLabel,
   validateBookingHours, type BookingHours, type DayKey,
 } from './bookingHours'
 
@@ -35,8 +35,8 @@ describe('slots: agree with the database', () => {
 describe('slots: details', () => {
   it('knows morning from afternoon, and the minutes', () => {
     const slots = slotsFor(defaultBookingHours(), '2026-10-19')
-    expect(slots[0]).toEqual({ label: '8:00 AM', minutes: 480, period: 'morning' })
-    expect(slots[4]).toEqual({ label: '1:00 PM', minutes: 780, period: 'afternoon' })
+    expect(slots[0]).toEqual({ label: '8:00 AM', minutes: 480, end: 540, period: 'morning' })
+    expect(slots[4]).toEqual({ label: '1:00 PM', minutes: 780, end: 840, period: 'afternoon' })
   })
   it('offers nothing on a closed day or date', () => {
     const h = defaultBookingHours()
@@ -148,5 +148,72 @@ describe('closed dates', () => {
   it('removes', () => expect(removeClosedDate(['a', 'b'], 'a')).toEqual(['b']))
   it('drops dates that have already passed', () => {
     expect(dropPastDates(['2026-10-01', '2026-10-16', '2026-12-25'], '2026-10-16')).toEqual(['2026-10-16', '2026-12-25'])
+  })
+})
+
+describe('showing a time as the whole appointment', () => {
+  const slot = (minutes: number, end: number) => ({ minutes, end })
+  it('says 8:00 – 8:30 AM when both ends are in the same half of the day', () => {
+    expect(rangeLabel(slot(480, 510))).toBe('8:00 – 8:30 AM')
+    expect(rangeLabel(slot(780, 840))).toBe('1:00 – 2:00 PM')
+  })
+  it('spells out both halves when it crosses noon', () => {
+    expect(rangeLabel(slot(660, 720))).toBe('11:00 AM – 12:00 PM')
+    expect(rangeLabel(slot(690, 750))).toBe('11:30 AM – 12:30 PM')
+    expect(rangeLabel(slot(720, 780))).toBe('12:00 – 1:00 PM')
+  })
+  it('handles the start of the day and an appointment ending at midnight', () => {
+    expect(rangeLabel(slot(0, 30))).toBe('12:00 – 12:30 AM')
+    expect(rangeLabel(slot(1410, 1440))).toBe('11:30 PM – 12:00 AM')
+  })
+  it('follows the clinic\'s appointment length', () => {
+    const h = defaultBookingHours()
+    h.slot_minutes = 30
+    h.days.mon.break_start = null; h.days.mon.break_end = null
+    expect(displayTime(h, '2026-10-19', '8:30 AM')).toBe('8:30 – 9:00 AM')
+    expect(displayTime(h, '2026-10-19', '12:00 PM')).toBe('12:00 – 12:30 PM')
+  })
+  it('leaves a saved time alone when it is not on the clinic\'s grid any more', () => {
+    expect(displayTime(defaultBookingHours(), '2026-10-19', '9:15 AM')).toBe('9:15 AM')
+    expect(displayTime(defaultBookingHours(), '2026-10-19', 'whenever')).toBe('whenever')
+  })
+})
+
+describe('flexible appointment lengths', () => {
+  it('accepts any length from 5 to 240 minutes in steps of 5', () => {
+    for (const n of [5, 10, 25, 35, 60, 240]) expect(isValidLength(n)).toBe(true)
+    for (const n of [0, 3, 17, 245, 250, 7.5, -5, NaN]) expect(isValidLength(n)).toBe(false)
+    expect(isValidLength('30')).toBe(false)
+  })
+  it('lets one day use its own length', () => {
+    const h = defaultBookingHours()
+    h.slot_minutes = 60
+    h.days.sat.slot_minutes = 30
+    h.days.sat.end = '10:00'; h.days.sat.start = '08:00'; h.days.sat.break_start = null; h.days.sat.break_end = null
+    expect(lengthFor(h, 'sat')).toBe(30)
+    expect(lengthFor(h, 'mon')).toBe(60)
+    expect(labels(h, '2026-10-17')).toEqual(['8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM'])
+    expect(slotsFor(h, '2026-10-17')[1]).toMatchObject({ minutes: 510, end: 540 })
+  })
+  it('is checked in Settings: a clinic-wide length and a day length', () => {
+    const h = defaultBookingHours()
+    h.slot_minutes = 17
+    expect(validateBookingHours(h).general[0]).toMatch(/5 to 240 minutes/)
+    const d = defaultBookingHours()
+    d.days.tue.slot_minutes = 12
+    expect(validateBookingHours(d).days.tue).toMatch(/must be 5 to 240 minutes/)
+  })
+  it('measures a day against its own length', () => {
+    const h = defaultBookingHours()
+    h.days.wed.slot_minutes = 240; h.days.wed.start = '08:00'; h.days.wed.end = '10:00'; h.days.wed.break_start = null; h.days.wed.break_end = null
+    expect(validateBookingHours(h).days.wed).toMatch(/at least one appointment/)
+    const many = defaultBookingHours()
+    many.days.thu.slot_minutes = 5; many.days.thu.break_start = null; many.days.thu.break_end = null
+    expect(validateBookingHours(many).days.thu).toMatch(/more than 48/)
+  })
+  it('is kept when reading what the database stored', () => {
+    const got = normalizeBookingHours({ slot_minutes: 30, days: { sat: { open: true, start: '08:00', end: '12:00', slot_minutes: 15 } } })
+    expect(got.days.sat.slot_minutes).toBe(15)
+    expect(got.days.mon.slot_minutes).toBeUndefined()
   })
 })

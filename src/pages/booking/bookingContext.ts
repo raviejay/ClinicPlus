@@ -30,6 +30,8 @@ export interface BookingCtx {
   slots: Slot[]
   /** True for a date the clinic takes no bookings */
   isClosed(iso: string): boolean
+  /** A saved time like '9:00 AM' as people read it on the chosen date: '9:00 – 9:30 AM' */
+  timeRange(label: string): string
   form: BookingFormState
   primaryColor: string
   secondaryColor: string

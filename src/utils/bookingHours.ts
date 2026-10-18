@@ -13,6 +13,8 @@ export interface DayHours {
   end: string
   break_start: string | null
   break_end: string | null
+  /** This day's own appointment length; absent/null = the clinic-wide one */
+  slot_minutes?: number | null
 }
 
 export interface BookingHours {
@@ -23,9 +25,12 @@ export interface BookingHours {
 }
 
 export interface Slot {
+  /** The start time, which is what an appointment is saved with: '8:00 AM' */
   label: string
   /** Minutes after midnight, clinic local time */
   minutes: number
+  /** When the appointment ends, in minutes after midnight */
+  end: number
   period: 'morning' | 'afternoon'
 }
 
@@ -33,7 +38,14 @@ export const DAY_KEYS: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'su
 export const DAY_NAMES: Record<DayKey, string> = {
   mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
 }
-export const SLOT_LENGTHS = [10, 15, 20, 30, 45, 60, 90, 120]
+/** Appointment length: any number of minutes from 5 to 240, in steps of 5 */
+export const MIN_SLOT_MINUTES = 5
+export const MAX_SLOT_MINUTES = 240
+export const SLOT_STEP = 5
+/** One-tap choices in Settings (any other length can still be typed) */
+export const QUICK_LENGTHS = [15, 20, 30, 45, 60, 90]
+export const isValidLength = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isInteger(n) && n >= MIN_SLOT_MINUTES && n <= MAX_SLOT_MINUTES && n % SLOT_STEP === 0
 export const MAX_SLOTS_PER_DAY = 48
 export const MAX_CLOSED_DATES = 366
 
@@ -81,7 +93,10 @@ export function normalizeBookingHours(raw: unknown): BookingHours {
   const days = { ...base.days }
   for (const k of DAY_KEYS) {
     const d = r.days?.[k]
-    if (isDayHours(d)) days[k] = { open: d.open, start: d.start, end: d.end, break_start: d.break_start ?? null, break_end: d.break_end ?? null }
+    if (isDayHours(d)) {
+      days[k] = { open: d.open, start: d.start, end: d.end, break_start: d.break_start ?? null, break_end: d.break_end ?? null }
+      if (typeof d.slot_minutes === 'number') days[k].slot_minutes = d.slot_minutes
+    }
   }
   return {
     slot_minutes: typeof r.slot_minutes === 'number' ? r.slot_minutes : base.slot_minutes,
@@ -90,13 +105,16 @@ export function normalizeBookingHours(raw: unknown): BookingHours {
   }
 }
 
+/** How long an appointment lasts on a weekday: the day's own length, else the clinic-wide one */
+export const lengthFor = (hours: BookingHours, key: DayKey) => hours.days[key].slot_minutes ?? hours.slot_minutes
+
 /** The times a patient may book on a date, in order. Empty when the clinic is closed that day. */
 export function slotsFor(hours: BookingHours, iso: string): Slot[] {
   if (hours.closed_dates.includes(iso)) return []
   const day = hours.days[dayKeyOf(iso)]
   if (!day?.open || !TIME.test(day.start) || !TIME.test(day.end)) return []
 
-  const len = hours.slot_minutes
+  const len = lengthFor(hours, dayKeyOf(iso))
   const start = toMinutes(day.start), end = toMinutes(day.end)
   const hasBreak = !!day.break_start && !!day.break_end && TIME.test(day.break_start) && TIME.test(day.break_end)
   const bs = hasBreak ? toMinutes(day.break_start!) : 0
@@ -106,9 +124,23 @@ export function slotsFor(hours: BookingHours, iso: string): Slot[] {
   for (let t = start; t + len <= end; t += len) {
     // A slot that touches the break is not offered
     if (hasBreak && t < be && t + len > bs) continue
-    out.push({ label: minutesLabel(t), minutes: t, period: t < 12 * 60 ? 'morning' : 'afternoon' })
+    out.push({ label: minutesLabel(t), minutes: t, end: t + len, period: t < 12 * 60 ? 'morning' : 'afternoon' })
   }
   return out
+}
+
+/** '8:00 – 8:30 AM', or '11:30 AM – 12:00 PM' when it crosses noon (the end time is when the appointment ends) */
+export function rangeLabel(slot: Pick<Slot, 'minutes' | 'end'>): string {
+  const start = minutesLabel(slot.minutes), end = minutesLabel(slot.end % 1440)
+  const [startClock, startPart] = start.split(' ')
+  const endPart = end.split(' ')[1]
+  return startPart === endPart ? `${startClock} – ${end}` : `${start} – ${end}`
+}
+
+/** What to show for a saved time like '9:00 AM' on a date: its range when the clinic's grid knows it, else the time as it was */
+export function displayTime(hours: BookingHours, iso: string, label: string): string {
+  const slot = slotsFor(hours, iso).find(x => x.label === label)
+  return slot ? rangeLabel(slot) : label
 }
 
 export const isOpenOn = (hours: BookingHours, iso: string) => slotsFor(hours, iso).length > 0
@@ -165,7 +197,7 @@ export interface HoursProblems {
 
 export function validateBookingHours(hours: BookingHours): HoursProblems {
   const problems: HoursProblems = { general: [], days: {} }
-  if (!SLOT_LENGTHS.includes(hours.slot_minutes)) problems.general.push('Choose how long each appointment is.')
+  if (!isValidLength(hours.slot_minutes)) problems.general.push(`Appointments can last ${MIN_SLOT_MINUTES} to ${MAX_SLOT_MINUTES} minutes, in steps of ${SLOT_STEP}.`)
 
   let openDays = 0
   for (const k of DAY_KEYS) {
@@ -174,9 +206,14 @@ export function validateBookingHours(hours: BookingHours): HoursProblems {
     openDays++
     if (!TIME.test(d.start) || !TIME.test(d.end)) { problems.days[k] = 'Enter an opening and closing time.'; continue }
     const start = toMinutes(d.start), end = toMinutes(d.end)
+    const len = lengthFor(hours, k)
+    if (d.slot_minutes != null && !isValidLength(d.slot_minutes)) {
+      problems.days[k] = `This day's appointment length must be ${MIN_SLOT_MINUTES} to ${MAX_SLOT_MINUTES} minutes, in steps of ${SLOT_STEP}.`
+      continue
+    }
     if (end <= start) { problems.days[k] = 'Closing time must be after opening time.'; continue }
-    if (end - start < hours.slot_minutes) { problems.days[k] = 'Open for at least one appointment length.'; continue }
-    if (Math.floor((end - start) / hours.slot_minutes) > MAX_SLOTS_PER_DAY) {
+    if (end - start < len) { problems.days[k] = 'Open for at least one appointment length.'; continue }
+    if (Math.floor((end - start) / len) > MAX_SLOTS_PER_DAY) {
       problems.days[k] = `That is more than ${MAX_SLOTS_PER_DAY} appointments in a day. Use a longer appointment or shorter hours.`
       continue
     }

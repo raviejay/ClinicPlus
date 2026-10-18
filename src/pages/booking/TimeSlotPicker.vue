@@ -38,20 +38,20 @@
           <span class="material-icons text-[14px]">{{ group.period === 'morning' ? 'wb_sunny' : 'wb_twilight' }}</span>
           {{ group.period === 'morning' ? 'Morning' : 'Afternoon' }}
         </p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <button v-for="slot in group.slots" :key="slot.label" type="button"
             :disabled="slot.state !== 'available'"
             :aria-pressed="selected === slot.label"
             :title="slot.state === 'booked' ? 'This time is already booked' : slot.state === 'past' ? 'This time has passed' : ''"
             @click="$emit('update:selected', slot.label)"
-            :class="['relative py-2.5 text-sm font-bold border transition-all focus:outline-none focus-visible:ring-2',
+            :class="['relative py-2.5 px-1 text-[13px] sm:text-sm font-bold border transition-all focus:outline-none focus-visible:ring-2',
               refined ? 'rounded-full' : 'rounded-xl',
               slot.state === 'available' && selected !== slot.label ? (refined ? 'bg-transparent border-stone-300 text-stone-700 hover:border-stone-500 active:scale-95' : 'bg-white border-gray-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 active:scale-95') : '',
               selected === slot.label && slot.state === 'available' ? 'text-white border-transparent shadow-sm' : '',
               slot.state === 'booked' ? 'bg-slate-100 border-slate-100 text-slate-300 cursor-not-allowed' : '',
               slot.state === 'past' ? 'bg-transparent border-dashed border-gray-200 text-slate-300 cursor-not-allowed' : '']"
             :style="selected === slot.label && slot.state === 'available' ? { background: primaryColor } : {}">
-            <span :class="slot.state !== 'available' ? 'line-through decoration-slate-300' : ''">{{ slot.label }}</span>
+            <span :class="['whitespace-nowrap', slot.state !== 'available' ? 'line-through decoration-slate-300' : '']">{{ rangeLabel(slot) }}</span>
             <span v-if="slot.state === 'booked'"
               class="block text-[9px] font-bold uppercase tracking-wide text-slate-400 -mt-0.5 no-underline">Booked</span>
             <span v-else-if="slot.state === 'past'"
@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Slot } from '@/utils/bookingHours'
+import { rangeLabel, type Slot } from '@/utils/bookingHours'
 
 const props = defineProps<{
   selected: string

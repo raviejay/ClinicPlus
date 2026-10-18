@@ -54,7 +54,7 @@ const rows = computed(() => {
   const list: { icon: string; text: string; strong?: boolean; empty?: boolean }[] = [
     { icon: 'event', text: ctx.form.appointment_date ? formatLongDate(ctx.form.appointment_date) : '', strong: true },
     ctx.form.time_slot
-      ? { icon: 'schedule', text: ctx.form.time_slot, strong: true }
+      ? { icon: 'schedule', text: ctx.timeRange(ctx.form.time_slot), strong: true }
       : { icon: 'schedule', text: 'Choose a time', empty: true },
   ]
   if (ctx.form.service_name) list.push({ icon: 'medical_services', text: ctx.form.service_name })

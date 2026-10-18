@@ -31,7 +31,7 @@
       <p :class="[labelClass, 'mb-2']">
         Time <span class="text-red-400">*</span>
         <span v-if="ctx.form.time_slot" class="ml-1 normal-case tracking-normal font-bold" :style="{ color: ctx.primaryColor }">
-          — {{ ctx.form.time_slot }}
+          — {{ ctx.timeRange(ctx.form.time_slot) }}
         </span>
       </p>
 

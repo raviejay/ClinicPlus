@@ -28,8 +28,8 @@ describe('booking hours editor', () => {
   it('starts from the clinic\'s current hours and previews the times patients will see', () => {
     mountEditor()
     expect(wrapper.find('[data-testid="preview-count"]').text()).toContain('Monday: 8 appointment times')
-    expect(wrapper.find('[aria-label="Appointment times"]').text()).toContain('8:00 AM')
-    expect(wrapper.find('[aria-label="Appointment times"]').text()).not.toContain('12:00 PM') // lunch
+    expect(wrapper.find('[aria-label="Appointment times"]').text()).toContain('8:00 – 9:00 AM')
+    expect(wrapper.find('[aria-label="Appointment times"]').text()).not.toContain('12:00 PM – 1:00 PM') // lunch
   })
 
   it('changes how long an appointment is, and the preview follows', async () => {
@@ -37,6 +37,42 @@ describe('booking hours editor', () => {
     await wrapper.find('#bh-length').setValue('30')
     expect(current.value.slot_minutes).toBe(30)
     expect(wrapper.find('[data-testid="preview-count"]').text()).toContain('16 appointment times')
+  })
+
+  it('takes any length in 5-minute steps, not only the common ones', async () => {
+    mountEditor()
+    await wrapper.find('#bh-length').setValue('25')
+    expect(current.value.slot_minutes).toBe(25)
+    expect(wrapper.find('[aria-label="Appointment times"]').text()).toContain('8:00 – 8:25 AM')
+  })
+
+  it('offers one-tap common lengths', async () => {
+    mountEditor()
+    await wrapper.find('[aria-label="Common lengths"]').findAll('button').find(b => b.text() === '45 min')!.trigger('click')
+    expect(current.value.slot_minutes).toBe(45)
+  })
+
+  it('lets a day use its own length, and clearing it goes back to the clinic-wide one', async () => {
+    mountEditor()
+    const box = wrapper.find('input[aria-label="Saturday appointment length in minutes"]')
+    expect(box.attributes('placeholder')).toBe('60')
+    await box.setValue('30')
+    expect(current.value.days.sat.slot_minutes).toBe(30)
+    await box.setValue('')
+    expect(current.value.days.sat.slot_minutes).toBeUndefined()
+  })
+
+  it('shows each time as the whole appointment in the preview', async () => {
+    mountEditor()
+    await wrapper.find('#bh-length').setValue('30')
+    expect(wrapper.find('[aria-label="Appointment times"]').text()).toContain('8:00 – 8:30 AM')
+    expect(wrapper.find('[aria-label="Appointment times"]').text()).toContain('8:30 – 9:00 AM')
+  })
+
+  it('warns about a length outside 5-240 minutes', async () => {
+    mountEditor()
+    await wrapper.find('#bh-length').setValue('17')
+    expect(wrapper.text()).toContain('5 to 240 minutes')
   })
 
   it('changes opening and closing times', async () => {

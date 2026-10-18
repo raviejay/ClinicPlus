@@ -5,12 +5,24 @@
     </p>
 
     <!-- Appointment length -->
-    <div class="max-w-xs">
+    <div>
       <label for="bh-length" class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Each appointment lasts</label>
-      <select id="bh-length" :value="model.slot_minutes" @change="setLength(Number(($event.target as HTMLSelectElement).value))"
-        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 bg-slate-50 focus:bg-white transition-all">
-        <option v-for="n in SLOT_LENGTHS" :key="n" :value="n">{{ lengthLabel(n) }}</option>
-      </select>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2">
+          <input id="bh-length" type="number" :min="MIN_SLOT_MINUTES" :max="MAX_SLOT_MINUTES" :step="SLOT_STEP" inputmode="numeric"
+            :value="model.slot_minutes" @input="setLength(($event.target as HTMLInputElement).value)"
+            class="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 bg-slate-50 focus:bg-white" />
+          <span class="text-sm text-slate-500">minutes</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Common lengths">
+          <button v-for="n in QUICK_LENGTHS" :key="n" type="button" @click="setLength(String(n))" :aria-pressed="model.slot_minutes === n"
+            :class="['text-xs font-bold px-3 py-1.5 rounded-full border transition-colors',
+              model.slot_minutes === n ? 'bg-sky-500 border-sky-500 text-white' : 'bg-white border-gray-200 text-slate-600 hover:border-sky-300']">
+            {{ n }} min
+          </button>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 mt-1.5">Any length from {{ MIN_SLOT_MINUTES }} to {{ MAX_SLOT_MINUTES }} minutes. Patients see each time as a range, like 8:00 – 8:30 AM.</p>
     </div>
 
     <!-- Week -->
@@ -54,6 +66,15 @@
                 <input type="time" :value="model.days[key].break_end ?? ''" @input="update(key, { break_end: ($event.target as HTMLInputElement).value || null })"
                   :aria-label="`${DAY_NAMES[key]} break ends`" :class="timeClass(key)" />
               </div>
+              <label class="flex items-center gap-1.5 text-xs text-slate-500">
+                Length
+                <input type="number" :min="MIN_SLOT_MINUTES" :max="MAX_SLOT_MINUTES" :step="SLOT_STEP" inputmode="numeric"
+                  :value="model.days[key].slot_minutes ?? ''" :placeholder="String(model.slot_minutes)"
+                  @input="setDayLength(key, ($event.target as HTMLInputElement).value)"
+                  :aria-label="`${DAY_NAMES[key]} appointment length in minutes`"
+                  class="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                min
+              </label>
             </template>
             <span v-else class="text-xs text-slate-400">Closed. No online bookings.</span>
           </div>
@@ -103,7 +124,7 @@
       </p>
       <p v-else class="text-xs text-slate-500" data-testid="preview-count">{{ DAY_NAMES[previewDay] }}: closed</p>
       <ul v-if="previewSlots.length" class="flex flex-wrap gap-1.5" aria-label="Appointment times">
-        <li v-for="s in previewSlots" :key="s.label" class="text-xs font-semibold text-slate-700 bg-white border border-gray-200 rounded-full px-3 py-1">{{ s.label }}</li>
+        <li v-for="s in previewSlots" :key="s.label" class="text-xs font-semibold text-slate-700 bg-white border border-gray-200 rounded-full px-3 py-1">{{ rangeLabel(s) }}</li>
       </ul>
     </div>
 
@@ -115,7 +136,8 @@
 import { computed, ref } from 'vue'
 import { formatLongDate, manilaToday } from '@/utils/booking'
 import {
-  addClosedDate, DAY_KEYS, DAY_NAMES, defaultBookingHours, removeClosedDate, SLOT_LENGTHS, slotsFor, validateBookingHours,
+  addClosedDate, DAY_KEYS, DAY_NAMES, defaultBookingHours, MAX_SLOT_MINUTES, MIN_SLOT_MINUTES, QUICK_LENGTHS, rangeLabel,
+  removeClosedDate, SLOT_STEP, slotsFor, validateBookingHours,
   type BookingHours, type DayHours, type DayKey,
 } from '@/utils/bookingHours'
 
@@ -130,8 +152,6 @@ const problems = computed(() => validateBookingHours(model.value))
 const timeClass = (key: DayKey) =>
   `border rounded-lg px-2.5 py-2 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 ${problems.value.days[key] ? 'border-red-300' : 'border-gray-200'}`
 
-const lengthLabel = (n: number) => (n < 60 ? `${n} minutes` : n === 60 ? '1 hour' : n === 90 ? '1 hour 30 minutes' : '2 hours')
-
 function emitChange(next: BookingHours) { emit('update:modelValue', next) }
 const clone = (): BookingHours => JSON.parse(JSON.stringify(props.modelValue))
 
@@ -141,9 +161,19 @@ function update(key: DayKey, change: Partial<DayHours>) {
   emitChange(next)
 }
 
-function setLength(minutes: number) {
+function setLength(value: string) {
+  const minutes = Number(value)
+  if (value === '' || Number.isNaN(minutes)) return // typing in progress
   const next = clone()
   next.slot_minutes = minutes
+  emitChange(next)
+}
+
+// An empty box means "same as the clinic-wide length"
+function setDayLength(key: DayKey, value: string) {
+  const next = clone()
+  if (value === '') delete next.days[key].slot_minutes
+  else if (!Number.isNaN(Number(value))) next.days[key].slot_minutes = Number(value)
   emitChange(next)
 }
 

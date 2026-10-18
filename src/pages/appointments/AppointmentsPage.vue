@@ -220,7 +220,7 @@
 
               <!-- Time -->
               <div class="text-center w-12 shrink-0 pt-0.5">
-                <p class="text-xs font-bold text-slate-700 leading-tight">{{ appt.time_slot ?? '—' }}</p>
+                <p class="text-xs font-bold text-slate-700 leading-tight">{{ appt.time_slot ? timeText(appt) : '—' }}</p>
               </div>
 
               <div class="w-px h-8 bg-gray-100 shrink-0 mt-0.5"></div>
@@ -351,7 +351,7 @@
             <!-- Top row: time + patient + status -->
             <div class="flex items-start gap-3">
               <div class="text-xs font-bold text-slate-500 w-11 shrink-0 pt-0.5 text-center">
-                {{ appt.time_slot ?? '—' }}
+                {{ appt.time_slot ? timeText(appt) : '—' }}
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-slate-900 truncate">{{ (appt as any).patients?.full_name ?? 'Unknown' }}</p>
@@ -440,6 +440,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { displayTime, normalizeBookingHours } from '@/utils/bookingHours'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { appointmentService } from '@/services/appointment.service'
@@ -453,6 +454,9 @@ const route = useRoute()
 const { isReadOnly } = useClinic()
 const { watchBranchChange } = useBranchFilter()
 const appointments = ref<Appointment[]>([])
+// Times read as the whole appointment ('9:00 – 9:30 AM') when the clinic's grid knows them
+const bookingHours = computed(() => normalizeBookingHours(authStore.clinicSettings?.booking_hours))
+const timeText = (a: Appointment) => displayTime(bookingHours.value, a.appointment_date, a.time_slot ?? '')
 const searchQuery = ref('')
 const loading = ref(true)
 const checkingIn = ref<string | null>(null)

@@ -289,7 +289,7 @@
                           : 'bg-white border-gray-200 text-slate-500 hover:border-sky-300 hover:text-sky-600'
                     ]"
                   >
-                    {{ slot }}
+                    {{ slotText(slot) }}
                     <span v-if="slotLoad(slot).total > 0"
                       :class="['block text-[10px] font-semibold leading-tight',
                         form.time_slot === slot ? 'text-white/80'
@@ -444,7 +444,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import type { Patient, ClinicPlan, ClinicServiceCategory } from '@/types'
 import { SERVICE_CATEGORIES } from '@/types'
 import { manilaToday, slotLoadLabel } from '@/utils/booking'
-import { normalizeBookingHours, slotsFor, timeLabel } from '@/utils/bookingHours'
+import { normalizeBookingHours, rangeLabel, slotsFor, timeLabel } from '@/utils/bookingHours'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -489,7 +489,9 @@ const form = ref({
 // The clinic's own times for the chosen day (Settings > Booking hours). Staff are not limited by them:
 // a custom time can always be entered for walk-ins and squeeze-ins.
 const hours = computed(() => normalizeBookingHours(authStore.clinicSettings?.booking_hours))
-const timeSlots = computed(() => slotsFor(hours.value, form.value.appointment_date).map(s => s.label))
+const daySlots = computed(() => slotsFor(hours.value, form.value.appointment_date))
+const timeSlots = computed(() => daySlots.value.map(s => s.label))
+const slotText = (label: string) => { const s = daySlots.value.find(x => x.label === label); return s ? rangeLabel(s) : label }
 const clinicClosedToday = computed(() => !!form.value.appointment_date && timeSlots.value.length === 0)
 
 // Any other time, chosen on a clock

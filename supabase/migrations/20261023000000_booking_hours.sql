@@ -3,7 +3,8 @@
 -- Every clinic sets its own opening days, hours, break, appointment length and days closed
 -- (Settings > Booking hours). Until a clinic sets them, the original schedule applies:
 -- every day, hourly from 8:00 AM to 5:00 PM with a 12:00-1:00 PM break.
---  * clinic_settings.booking_hours (jsonb, null = the default above), validated by the database
+--  * clinic_settings.booking_hours (jsonb, null = the default above), validated by the database.
+--    Appointment length is any number of minutes from 5 to 240 (steps of 5), clinic-wide, and a day may use its own.
 --  * booking_slots(clinic, date): the time labels patients may book that day ('8:00 AM', ...)
 --  * book_public_appointment() now refuses closed days and times that are not on the clinic's grid
 -- The same rules are in src/utils/bookingHours.ts (the booking page and Settings use it).
@@ -32,6 +33,7 @@ create or replace function public.valid_booking_hours(p jsonb)
 returns boolean language plpgsql immutable as $$
 declare
   v_len int;
+  v_dlen int;
   v_key text;
   v_day jsonb;
   v_start int;
@@ -46,7 +48,8 @@ begin
   if jsonb_typeof(p) <> 'object' then return false; end if;
   if jsonb_typeof(p->'slot_minutes') <> 'number' then return false; end if;
   v_len := (p->>'slot_minutes')::numeric::int;
-  if (p->>'slot_minutes')::numeric <> v_len or v_len not in (10, 15, 20, 30, 45, 60, 90, 120) then return false; end if;
+  -- any length from 5 to 240 minutes, in steps of 5
+  if (p->>'slot_minutes')::numeric <> v_len or v_len < 5 or v_len > 240 or v_len % 5 <> 0 then return false; end if;
 
   if jsonb_typeof(p->'days') <> 'object' then return false; end if;
   foreach v_key in array array['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] loop
@@ -59,8 +62,15 @@ begin
       if (v_day->>'start') !~ v_time or (v_day->>'end') !~ v_time then return false; end if;
       v_start := public.hhmm_to_minutes(v_day->>'start');
       v_end := public.hhmm_to_minutes(v_day->>'end');
-      if v_end - v_start < v_len then return false; end if;      -- room for at least one appointment
-      if (v_end - v_start) / v_len > 48 then return false; end if; -- at most 48 a day
+      -- a day may use its own appointment length instead of the clinic-wide one
+      v_dlen := v_len;
+      if coalesce(jsonb_typeof(v_day->'slot_minutes'), 'null') <> 'null' then
+        if jsonb_typeof(v_day->'slot_minutes') <> 'number' then return false; end if;
+        v_dlen := (v_day->>'slot_minutes')::numeric::int;
+        if (v_day->>'slot_minutes')::numeric <> v_dlen or v_dlen < 5 or v_dlen > 240 or v_dlen % 5 <> 0 then return false; end if;
+      end if;
+      if v_end - v_start < v_dlen then return false; end if;      -- room for at least one appointment
+      if (v_end - v_start) / v_dlen > 48 then return false; end if; -- at most 48 a day
       if coalesce(jsonb_typeof(v_day->'break_start'), 'null') <> 'null' or coalesce(jsonb_typeof(v_day->'break_end'), 'null') <> 'null' then
         if jsonb_typeof(v_day->'break_start') <> 'string' or jsonb_typeof(v_day->'break_end') <> 'string' then return false; end if;
         if (v_day->>'break_start') !~ v_time or (v_day->>'break_end') !~ v_time then return false; end if;
@@ -111,7 +121,7 @@ begin
   v_day := v_hours->'days'->(array['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'])[extract(dow from p_date)::int + 1];
   if not (v_day->>'open')::boolean then return v_out; end if;
 
-  v_len := (v_hours->>'slot_minutes')::int;
+  v_len := coalesce((v_day->>'slot_minutes')::int, (v_hours->>'slot_minutes')::int);
   v_start := public.hhmm_to_minutes(v_day->>'start');
   v_end := public.hhmm_to_minutes(v_day->>'end');
   if coalesce(jsonb_typeof(v_day->'break_start'), 'null') = 'string' then

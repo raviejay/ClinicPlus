@@ -1,42 +1,399 @@
 {
   "note": "Shared by the database tests and src/utils/bookingHours.test.ts so both sides produce the same slots.",
-  "defaultSlots": ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"],
+  "defaultSlots": [
+    "8:00 AM",
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM"
+  ],
   "cases": [
-    { "name": "30-minute morning clinic", "date": "2026-10-19",
-      "spec": { "slot_minutes": 30, "day": { "open": true, "start": "09:00", "end": "12:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM"] },
-    { "name": "closed on Sundays", "date": "2026-10-18",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "17:00", "break_start": "12:00", "break_end": "13:00" }, "overrides": { "sun": { "open": false } }, "closed_dates": [] },
-      "expected": [] },
-    { "name": "open on Saturdays when only Sundays are closed", "date": "2026-10-17",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "17:00", "break_start": "12:00", "break_end": "13:00" }, "overrides": { "sun": { "open": false } }, "closed_dates": [] },
-      "expected": ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"] },
-    { "name": "Saturday half day override", "date": "2026-10-17",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "17:00", "break_start": "12:00", "break_end": "13:00" }, "overrides": { "sat": { "end": "12:00", "break_start": null, "break_end": null } }, "closed_dates": [] },
-      "expected": ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM"] },
-    { "name": "a holiday is closed", "date": "2026-12-25",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "17:00", "break_start": "12:00", "break_end": "13:00" }, "overrides": {}, "closed_dates": ["2026-12-25"] },
-      "expected": [] },
-    { "name": "the day after a holiday is open", "date": "2026-12-26",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "09:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": ["2026-12-25"] },
-      "expected": ["8:00 AM"] },
-    { "name": "a break that does not line up with the slots removes every slot it touches", "date": "2026-10-19",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "08:00", "end": "17:00", "break_start": "12:30", "break_end": "13:30" }, "overrides": {}, "closed_dates": [] },
-      "expected": ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM"] },
-    { "name": "45-minute appointments stop when the last one would run over closing", "date": "2026-10-19",
-      "spec": { "slot_minutes": 45, "day": { "open": true, "start": "08:00", "end": "10:15", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["8:00 AM", "8:45 AM", "9:30 AM"] },
-    { "name": "afternoon-only clinic", "date": "2026-10-19",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "13:00", "end": "15:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["1:00 PM", "2:00 PM"] },
-    { "name": "noon is 12:00 PM", "date": "2026-10-19",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "11:00", "end": "13:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["11:00 AM", "12:00 PM"] },
-    { "name": "20-minute appointments", "date": "2026-10-19",
-      "spec": { "slot_minutes": 20, "day": { "open": true, "start": "08:00", "end": "09:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["8:00 AM", "8:20 AM", "8:40 AM"] },
-    { "name": "midnight starts at 12:00 AM", "date": "2026-10-19",
-      "spec": { "slot_minutes": 60, "day": { "open": true, "start": "00:00", "end": "02:00", "break_start": null, "break_end": null }, "overrides": {}, "closed_dates": [] },
-      "expected": ["12:00 AM", "1:00 AM"] }
+    {
+      "name": "30-minute morning clinic",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 30,
+        "day": {
+          "open": true,
+          "start": "09:00",
+          "end": "12:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "9:00 AM",
+        "9:30 AM",
+        "10:00 AM",
+        "10:30 AM",
+        "11:00 AM",
+        "11:30 AM"
+      ]
+    },
+    {
+      "name": "closed on Sundays",
+      "date": "2026-10-18",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "17:00",
+          "break_start": "12:00",
+          "break_end": "13:00"
+        },
+        "overrides": {
+          "sun": {
+            "open": false
+          }
+        },
+        "closed_dates": []
+      },
+      "expected": []
+    },
+    {
+      "name": "open on Saturdays when only Sundays are closed",
+      "date": "2026-10-17",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "17:00",
+          "break_start": "12:00",
+          "break_end": "13:00"
+        },
+        "overrides": {
+          "sun": {
+            "open": false
+          }
+        },
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "9:00 AM",
+        "10:00 AM",
+        "11:00 AM",
+        "1:00 PM",
+        "2:00 PM",
+        "3:00 PM",
+        "4:00 PM"
+      ]
+    },
+    {
+      "name": "Saturday half day override",
+      "date": "2026-10-17",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "17:00",
+          "break_start": "12:00",
+          "break_end": "13:00"
+        },
+        "overrides": {
+          "sat": {
+            "end": "12:00",
+            "break_start": null,
+            "break_end": null
+          }
+        },
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "9:00 AM",
+        "10:00 AM",
+        "11:00 AM"
+      ]
+    },
+    {
+      "name": "a holiday is closed",
+      "date": "2026-12-25",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "17:00",
+          "break_start": "12:00",
+          "break_end": "13:00"
+        },
+        "overrides": {},
+        "closed_dates": [
+          "2026-12-25"
+        ]
+      },
+      "expected": []
+    },
+    {
+      "name": "the day after a holiday is open",
+      "date": "2026-12-26",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "09:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": [
+          "2026-12-25"
+        ]
+      },
+      "expected": [
+        "8:00 AM"
+      ]
+    },
+    {
+      "name": "a break that does not line up with the slots removes every slot it touches",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "17:00",
+          "break_start": "12:30",
+          "break_end": "13:30"
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "9:00 AM",
+        "10:00 AM",
+        "11:00 AM",
+        "2:00 PM",
+        "3:00 PM",
+        "4:00 PM"
+      ]
+    },
+    {
+      "name": "45-minute appointments stop when the last one would run over closing",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 45,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "10:15",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:45 AM",
+        "9:30 AM"
+      ]
+    },
+    {
+      "name": "afternoon-only clinic",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "13:00",
+          "end": "15:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "1:00 PM",
+        "2:00 PM"
+      ]
+    },
+    {
+      "name": "noon is 12:00 PM",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "11:00",
+          "end": "13:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "11:00 AM",
+        "12:00 PM"
+      ]
+    },
+    {
+      "name": "20-minute appointments",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 20,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "09:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:20 AM",
+        "8:40 AM"
+      ]
+    },
+    {
+      "name": "midnight starts at 12:00 AM",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "00:00",
+          "end": "02:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "12:00 AM",
+        "1:00 AM"
+      ]
+    },
+    {
+      "name": "25-minute appointments (any length in 5-minute steps)",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 25,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "09:15",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:25 AM",
+        "8:50 AM"
+      ]
+    },
+    {
+      "name": "5-minute appointments",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 5,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "08:20",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:05 AM",
+        "8:10 AM",
+        "8:15 AM"
+      ]
+    },
+    {
+      "name": "a Saturday that uses half-hour appointments while the week is hourly",
+      "date": "2026-10-17",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "10:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {
+          "sat": {
+            "slot_minutes": 30
+          }
+        },
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:30 AM",
+        "9:00 AM",
+        "9:30 AM"
+      ]
+    },
+    {
+      "name": "the rest of that week stays hourly",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 60,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "10:00",
+          "break_start": null,
+          "break_end": null
+        },
+        "overrides": {
+          "sat": {
+            "slot_minutes": 30
+          }
+        },
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "9:00 AM"
+      ]
+    },
+    {
+      "name": "half-hour appointments with a break",
+      "date": "2026-10-19",
+      "spec": {
+        "slot_minutes": 30,
+        "day": {
+          "open": true,
+          "start": "08:00",
+          "end": "10:00",
+          "break_start": "09:00",
+          "break_end": "09:30"
+        },
+        "overrides": {},
+        "closed_dates": []
+      },
+      "expected": [
+        "8:00 AM",
+        "8:30 AM",
+        "9:30 AM"
+      ]
+    }
   ]
 }
