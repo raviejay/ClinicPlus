@@ -27,6 +27,18 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: "/forgot-password",
+      name: "forgot-password",
+      component: () => import("@/pages/auth/ForgotPasswordPage.vue"),
+      meta: { requiresGuest: true },
+    },
+    {
+      // No guest rule: the emailed link signs the person in, and they still need to reach this page
+      path: "/reset-password",
+      name: "reset-password",
+      component: () => import("@/pages/auth/ResetPasswordPage.vue"),
+    },
+    {
       path: "/register",
       name: "register",
       component: () => import("@/pages/auth/RegisterPage.vue"),

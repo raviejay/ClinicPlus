@@ -83,18 +83,18 @@ export const useAuthStore = defineStore('auth', () => {
     if (settingsRes.data) clinicSettings.value = settingsRes.data
   }
 
-  async function signup(email: string, password: string) {
+  async function signup(email: string, password: string, captchaToken?: string) {
     loading.value = true
-    const { data, error } = await authService.signup({ email, password })
+    const { data, error } = await authService.signup({ email, password, captchaToken })
     loading.value = false
     if (error) return { error }
     if (data) user.value = { id: data.userId, email }
     return { error: null }
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, captchaToken?: string) {
     loading.value = true
-    const { error } = await authService.login({ email, password })
+    const { error } = await authService.login({ email, password, captchaToken })
     loading.value = false
     // A deactivated account is banned at sign-in; say what that means
     if (error && /banned/i.test(String(error))) return { error: DEACTIVATED_MESSAGE }

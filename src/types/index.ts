@@ -288,11 +288,14 @@ export type ApiResponse<T> = {
 export interface SignupPayload {
   email: string
   password: string
+  /** Cloudflare Turnstile token, when the human check is switched on */
+  captchaToken?: string
 }
 
 export interface LoginPayload {
   email: string
   password: string
+  captchaToken?: string
 }
 
 export interface ClinicSetupPayload {
