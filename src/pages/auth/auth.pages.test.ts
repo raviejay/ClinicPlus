@@ -43,6 +43,8 @@ const submit = async () => { await wrapper.find('form').trigger('submit'); await
 const button = (text: string) => wrapper.findAll('button').find(b => b.text().includes(text))!
 
 beforeEach(() => {
+  // Whatever site key is in the developer's own .env, tests start with the human check off
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', '')
   mocks.query = {}
   mocks.profile = { clinic_id: 'c1' }
   mocks.login.mockResolvedValue({ error: null })

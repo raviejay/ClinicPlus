@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-[#F0F4F8] flex">
+    <NotificationToasts />
 
     <!-- SIDEBAR -->
     <aside :class="['hidden md:flex flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-100 shadow-sm transition-all duration-300 ease-in-out', sidebarCollapsed ? 'w-[68px]' : 'w-60']">
@@ -175,10 +176,7 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <button class="relative p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500">
-              <span class="material-icons" style="font-size:20px">notifications</span>
-              <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white"></span>
-            </button>
+            <NotificationBell />
 
             <div class="relative">
               <button @click="menuOpen = !menuOpen" class="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
@@ -287,8 +285,12 @@ import { useAuthStore } from '@/stores/auth'
 import { useBranchStore } from '@/stores/branch'
 import { useClinic } from '@/composables/useClinic'
 import AppLogo from '@/components/AppLogo.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
+import NotificationToasts from '@/components/NotificationToasts.vue'
+import { useNotificationStore } from '@/stores/notifications'
 
 const authStore = useAuthStore()
+const notifications = useNotificationStore()
 const branchStore = useBranchStore()
 const { planLabel, planColor } = useClinic()
 const route = useRoute()
@@ -316,6 +318,10 @@ function handleOutsideClick(e: MouseEvent) {
 onMounted(async () => {
   document.addEventListener('click', handleOutsideClick, true)
   await branchStore.loadBranches()
+  // Alerts for new online bookings (starts once per sign-in, whichever page is open)
+  if (authStore.clinic?.id && authStore.user?.id) {
+    void notifications.start(authStore.clinic.id, authStore.user.id, authStore.profile?.notifications_seen_at)
+  }
 })
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick, true))
 
@@ -374,6 +380,7 @@ function isActive(path: string) { return route.path.startsWith(path) }
 async function handleLogout() {
   menuOpen.value = false
   branchStore.reset()
+  notifications.stop()
   await authStore.logout()
 }
 </script>

@@ -126,6 +126,8 @@ export interface Profile {
   is_active?: boolean
   /** Public address of the profile photo */
   avatar_url?: string | null
+  /** Alerts created after this have not been looked at yet */
+  notifications_seen_at?: string | null
   created_at: string
 }
 
@@ -301,4 +303,14 @@ export interface LoginPayload {
 export interface ClinicSetupPayload {
   name: string
   email?: string
+}
+export interface AppNotification {
+  id: string
+  clinic_id: string
+  branch_id: string | null
+  type: 'new_appointment'
+  title: string
+  body: string
+  appointment_id: string | null
+  created_at: string
 }
