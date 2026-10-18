@@ -7,7 +7,7 @@ const m = vi.hoisted(() => ({
 
 vi.mock('./supabase', () => ({
   supabase: {
-    from: (table: string) => (table === 'notifications' ? { select: m.select } : { update: m.update }),
+    from: (table: string) => (table === 'profiles' ? { update: m.update } : { select: m.select }),
     channel: m.channel,
     removeChannel: m.removeChannel,
     functions: { invoke: vi.fn() },
@@ -41,6 +41,13 @@ describe('notification service', () => {
   it('reports a failed fetch', async () => {
     m.limit.mockResolvedValue({ data: null, error: { message: 'denied' } })
     expect(await notificationService.getRecent('c1')).toEqual({ data: null, error: 'denied' })
+  })
+
+  it("looks up the day of an appointment", async () => {
+    m.select.mockReturnValue({ eq: m.eq })
+    m.eq.mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { appointment_date: '2026-10-19' }, error: null }) })
+    expect(await notificationService.getAppointmentDate('a1')).toBe('2026-10-19')
+    expect(m.eq).toHaveBeenCalledWith('id', 'a1')
   })
 
   it('saves when the person last looked, on their own profile', async () => {

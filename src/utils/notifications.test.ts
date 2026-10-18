@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { badgeLabel, mergeNotifications, timeAgo, unreadOf } from './notifications'
+import { badgeLabel, mergeNotifications, scheduleLocation, timeAgo, unreadOf } from './notifications'
 import type { AppNotification } from '@/types'
 
 const n = (id: string, created_at: string): AppNotification => ({
@@ -48,5 +48,16 @@ describe('badge', () => {
   it('caps at 9+', () => {
     expect(badgeLabel(3)).toBe('3')
     expect(badgeLabel(10)).toBe('9+')
+  })
+})
+
+describe('where an alert leads', () => {
+  it("is the schedule on the appointment's day, with the appointment marked", () => {
+    expect(scheduleLocation('a1', '2026-10-19')).toEqual({ path: '/appointments', query: { date: '2026-10-19', appointment: 'a1' } })
+  })
+  it('is just the schedule when the day is unknown or malformed', () => {
+    expect(scheduleLocation('a1', null)).toEqual({ path: '/appointments', query: {} })
+    expect(scheduleLocation('a1', 'tomorrow')).toEqual({ path: '/appointments', query: {} })
+    expect(scheduleLocation(null, null)).toEqual({ path: '/appointments', query: {} })
   })
 })

@@ -209,9 +209,10 @@
 
           <!-- List -->
           <div v-else class="flex-1 overflow-y-auto p-4 space-y-2">
-            <div v-for="appt in filteredAppointments" :key="appt.id"
+            <div v-for="appt in filteredAppointments" :key="appt.id" :data-appointment-id="appt.id"
               :class="[
                 'group flex items-start gap-3 px-4 py-3.5 border rounded-xl bg-white transition-all',
+                appt.id === highlightId && 'ring-2 ring-sky-400 border-sky-300 bg-sky-50/60',
                 appt.status === 'confirmed' && isSelectedDateToday
                   ? 'border-sky-200 hover:border-sky-300 hover:shadow-sm hover:shadow-sky-100'
                   : 'border-gray-200 hover:border-slate-300'
@@ -437,7 +438,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBranchFilter } from '@/composables/useBranchFilter'
 import { appointmentService } from '@/services/appointment.service'
@@ -447,6 +449,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import type { Appointment } from '@/types'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const { isReadOnly } = useClinic()
 const { watchBranchChange } = useBranchFilter()
 const appointments = ref<Appointment[]>([])
@@ -681,6 +684,39 @@ async function loadAppointments() {
   })
   appointments.value = (data as any) ?? []
   loading.value = false
+  await showHighlight()
+}
+
+// ── Arriving from a notification: ?date=YYYY-MM-DD&appointment=<id> ──
+const highlightId = ref<string | null>(null)
+let highlightTimer: ReturnType<typeof setTimeout> | undefined
+
+async function showHighlight() {
+  if (!highlightId.value) return
+  await nextTick()
+  const el = [...document.querySelectorAll<HTMLElement>('[data-appointment-id]')]
+    .find(e => e.dataset.appointmentId === highlightId.value)
+  el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+  clearTimeout(highlightTimer)
+  // The marker fades after a few seconds so it does not linger
+  highlightTimer = setTimeout(() => { highlightId.value = null }, 5000)
+}
+
+/** Returns false when the address has no usable date, so the page opens normally instead */
+function openFromLink(): boolean {
+  const date = typeof route.query.date === 'string' ? route.query.date : ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false
+  const id = typeof route.query.appointment === 'string' ? route.query.appointment : null
+  activeStatusFilter.value = null
+  searchQuery.value = ''
+  highlightId.value = id
+  const [y, m] = date.split('-').map(Number)
+  viewYear.value = y
+  viewMonth.value = m - 1
+  loadMonthDots()
+  if (selectedDate.value !== date) selectedDate.value = date // the date watcher loads that day
+  else void loadAppointments() // same day: reload, the booking may be brand new
+  return true
 }
 
 async function loadMonthDots() {
@@ -697,9 +733,14 @@ async function loadMonthDots() {
 
 watch(selectedDate, loadAppointments)
 
+// Clicking a second notification while already here changes only the address
+watch(() => [route.query.date, route.query.appointment], () => { openFromLink() })
+
 onMounted(() => {
-  loadAppointments()
-  loadMonthDots()
+  if (!openFromLink()) {
+    loadAppointments()
+    loadMonthDots()
+  }
   document.addEventListener('click', handleOutsideClick)
   watchBranchChange(() => {
     loadAppointments()
@@ -710,6 +751,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick)
   if (toastTimer) clearTimeout(toastTimer)
+  clearTimeout(highlightTimer)
 })
 </script>
 

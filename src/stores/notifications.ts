@@ -19,7 +19,7 @@ export function explainProblem(error: string): string {
   return `Could not load notifications: ${error}`
 }
 
-export interface Toast { id: string; title: string; body: string }
+export interface Toast { id: string; title: string; body: string; appointmentId: string | null }
 
 // One listener for the whole signed-in session (pages come and go, the alerts keep arriving)
 export const useNotificationStore = defineStore('notifications', () => {
@@ -77,7 +77,7 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   function showToast(n: AppNotification) {
-    toasts.value = [...toasts.value, { id: n.id, title: n.title, body: n.body }].slice(-3)
+    toasts.value = [...toasts.value, { id: n.id, title: n.title, body: n.body, appointmentId: n.appointment_id }].slice(-3)
     window.setTimeout(() => dismissToast(n.id), 8000)
   }
 

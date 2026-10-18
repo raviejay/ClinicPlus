@@ -33,6 +33,12 @@ export const notificationService = {
     return { data: (data ?? []) as AppNotification[], error: null }
   },
 
+  // The day an appointment is on, so an alert can open the right page of the schedule
+  async getAppointmentDate(appointmentId: string): Promise<string | null> {
+    const { data } = await supabase.from('appointments').select('appointment_date').eq('id', appointmentId).maybeSingle()
+    return (data as { appointment_date?: string } | null)?.appointment_date ?? null
+  },
+
   // Everything up to `seenAt` (a server time, taken from the newest alert) counts as read
   async markSeen(userId: string, seenAt: string): Promise<ApiResponse<null>> {
     const { error } = await supabase.from('profiles').update({ notifications_seen_at: seenAt }).eq('id', userId)

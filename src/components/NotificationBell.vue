@@ -25,7 +25,7 @@
 
       <ul v-if="store.items.length" class="max-h-96 overflow-y-auto divide-y divide-gray-50">
         <li v-for="n in store.items" :key="n.id">
-          <button type="button" @click="openItem"
+          <button type="button" @click="openItem(n)"
             :class="['w-full text-left px-4 py-3 flex gap-3 hover:bg-slate-50 transition-colors', isUnread(n) && 'bg-sky-50/60']">
             <span class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
               <span class="material-icons text-[18px]">event_available</span>
@@ -36,7 +36,7 @@
                 <span v-if="isUnread(n)" class="w-2 h-2 rounded-full bg-sky-500 shrink-0" aria-label="Unread"></span>
               </span>
               <span class="block text-xs text-slate-600 mt-0.5">{{ n.body }}</span>
-              <span class="block text-[11px] text-slate-400 mt-1">{{ timeAgo(n.created_at) }}</span>
+              <span class="block text-[11px] text-slate-400 mt-1">{{ timeAgo(n.created_at) }} · View in schedule</span>
             </span>
           </button>
         </li>
@@ -67,13 +67,13 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useOpenNotification } from '@/composables/useOpenNotification'
 import { useNotificationStore } from '@/stores/notifications'
 import { badgeLabel, timeAgo } from '@/utils/notifications'
 import type { AppNotification } from '@/types'
 
 const store = useNotificationStore()
-const router = useRouter()
+const openAppointment = useOpenNotification()
 const open = ref(false)
 // Remember what was unread when the panel was opened, so items do not change look under the reader's eyes
 const unreadAtOpen = ref<Set<string>>(new Set())
@@ -88,9 +88,9 @@ function toggle() {
   }
 }
 
-function openItem() {
+function openItem(n: AppNotification) {
   open.value = false
-  router.push('/appointments')
+  void openAppointment(n.appointment_id)
 }
 
 function close(e: MouseEvent) {

@@ -7,10 +7,10 @@
           <span class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0">
             <span class="material-icons text-[20px]">event_available</span>
           </span>
-          <button type="button" class="min-w-0 flex-1 text-left" @click="go(t.id)">
+          <button type="button" class="min-w-0 flex-1 text-left" @click="go(t)">
             <span class="block text-sm font-black text-slate-900">{{ t.title }}</span>
             <span class="block text-xs text-slate-600 mt-0.5">{{ t.body }}</span>
-            <span class="block text-[11px] font-semibold text-sky-600 mt-1.5">View appointments →</span>
+            <span class="block text-[11px] font-semibold text-sky-600 mt-1.5">View in schedule →</span>
           </button>
           <button type="button" aria-label="Dismiss" @click="store.dismissToast(t.id)" class="text-slate-300 hover:text-slate-500">
             <span class="material-icons text-[18px]">close</span>
@@ -22,16 +22,16 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useNotificationStore } from '@/stores/notifications'
+import { useNotificationStore, type Toast } from '@/stores/notifications'
+import { useOpenNotification } from '@/composables/useOpenNotification'
 
 const store = useNotificationStore()
-const router = useRouter()
+const openAppointment = useOpenNotification()
 
-function go(id: string) {
-  store.dismissToast(id)
+function go(t: Toast) {
+  store.dismissToast(t.id)
   void store.markAllSeen()
-  router.push('/appointments')
+  void openAppointment(t.appointmentId)
 }
 </script>
 

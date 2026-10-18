@@ -3,12 +3,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 
 const mocks = vi.hoisted(() => ({
-  getRecent: vi.fn(), markSeen: vi.fn(), subscribe: vi.fn(), unsubscribe: vi.fn(),
+  getRecent: vi.fn(), getAppointmentDate: vi.fn(), markSeen: vi.fn(), subscribe: vi.fn(), unsubscribe: vi.fn(),
   onNew: null as null | ((n: any) => void), push: vi.fn(),
 }))
 
 vi.mock('@/services/notification.service', () => ({
-  notificationService: { getRecent: mocks.getRecent, markSeen: mocks.markSeen, subscribe: mocks.subscribe },
+  notificationService: { getRecent: mocks.getRecent, getAppointmentDate: mocks.getAppointmentDate, markSeen: mocks.markSeen, subscribe: mocks.subscribe },
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.push }) }))
 
@@ -17,7 +17,7 @@ import NotificationBell from '@/components/NotificationBell.vue'
 import NotificationToasts from '@/components/NotificationToasts.vue'
 
 const note = (id: string, created_at: string, body = `Booking ${id}`) => ({
-  id, clinic_id: 'c1', branch_id: null, type: 'new_appointment', title: 'New online appointment', body, appointment_id: null, created_at,
+  id, clinic_id: 'c1', branch_id: null, type: 'new_appointment', title: 'New online appointment', body, appointment_id: `appt-${id}`, created_at,
 })
 const OLD = note('old', '2026-10-15T08:00:00Z')
 const SEEN = '2026-10-15T09:00:00Z'
@@ -27,6 +27,7 @@ beforeEach(() => {
   localStorage.clear()
   mocks.getRecent.mockResolvedValue({ data: [OLD], error: null })
   mocks.markSeen.mockResolvedValue({ data: null, error: null })
+  mocks.getAppointmentDate.mockResolvedValue('2026-10-19')
   mocks.subscribe.mockImplementation((_clinic: string, cb: (n: any) => void) => { mocks.onNew = cb; return mocks.unsubscribe })
 })
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); document.body.innerHTML = '' })
@@ -60,7 +61,7 @@ describe('notification store', () => {
     mocks.onNew!(note('n1', '2026-10-16T10:00:00Z', 'Juan booked for Oct 17 at 9:00 AM'))
     expect(store.unreadCount).toBe(1)
     expect(store.items[0].id).toBe('n1')
-    expect(store.toasts).toEqual([{ id: 'n1', title: 'New online appointment', body: 'Juan booked for Oct 17 at 9:00 AM' }])
+    expect(store.toasts).toEqual([{ id: 'n1', title: 'New online appointment', body: 'Juan booked for Oct 17 at 9:00 AM', appointmentId: 'appt-n1' }])
   })
 
   it('ignores an alert it already has', async () => {
@@ -175,11 +176,13 @@ describe('notification bell', () => {
     expect(wrapper.text()).toContain('Nothing new yet')
   })
 
-  it('goes to the appointments when an alert is chosen', async () => {
+  it("opens the schedule on that appointment's day, with it marked, when an alert is chosen", async () => {
     await mountBell()
     await wrapper.find('button').trigger('click')
     await wrapper.find('li button').trigger('click')
-    expect(mocks.push).toHaveBeenCalledWith('/appointments')
+    await flushPromises()
+    expect(mocks.getAppointmentDate).toHaveBeenCalledWith('appt-old')
+    expect(mocks.push).toHaveBeenCalledWith({ path: '/appointments', query: { date: '2026-10-19', appointment: 'appt-old' } })
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
@@ -200,8 +203,22 @@ describe('notification toasts', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('Juan booked for Oct 17 at 9:00 AM')
     await wrapper.find('[role="status"] .min-w-0').trigger('click')
-    expect(mocks.push).toHaveBeenCalledWith('/appointments')
+    await flushPromises()
+    expect(mocks.push).toHaveBeenCalledWith({ path: '/appointments', query: { date: '2026-10-19', appointment: 'appt-n1' } })
     expect(store.toasts).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('still opens the schedule when the appointment cannot be found', async () => {
+    mocks.getAppointmentDate.mockResolvedValue(null)
+    const store = useNotificationStore()
+    await store.start('c1', 'u1', SEEN)
+    wrapper = mount(NotificationToasts, { ...stubs })
+    mocks.onNew!(note('n1', '2026-10-16T10:00:00Z'))
+    await flushPromises()
+    await wrapper.find('[role="status"] .min-w-0').trigger('click')
+    await flushPromises()
+    expect(mocks.push).toHaveBeenCalledWith({ path: '/appointments', query: {} })
     wrapper.unmount()
   })
 

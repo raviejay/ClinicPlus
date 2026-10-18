@@ -30,3 +30,11 @@ export function timeAgo(iso: string, now = new Date()): string {
 
 /** The badge: "9+" rather than a number that overflows the bell */
 export const badgeLabel = (count: number) => (count > 9 ? '9+' : String(count))
+
+/** Where an alert leads: the schedule on the appointment's day, with the appointment marked */
+export function scheduleLocation(appointmentId: string | null | undefined, date: string | null | undefined) {
+  const query: Record<string, string> = {}
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) query.date = date
+  if (appointmentId && query.date) query.appointment = appointmentId
+  return { path: '/appointments', query }
+}
