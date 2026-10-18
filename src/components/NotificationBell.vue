@@ -18,6 +18,11 @@
           class="text-xs font-semibold text-sky-600 hover:text-sky-700">Mark all as read</button>
       </div>
 
+      <div v-if="store.problem" role="alert" class="mx-4 mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+        <span class="material-icons text-amber-500 text-[16px] mt-0.5">warning_amber</span>
+        <p class="text-xs text-amber-800">{{ store.problem }}</p>
+      </div>
+
       <ul v-if="store.items.length" class="max-h-96 overflow-y-auto divide-y divide-gray-50">
         <li v-for="n in store.items" :key="n.id">
           <button type="button" @click="openItem"

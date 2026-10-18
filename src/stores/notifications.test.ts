@@ -103,6 +103,16 @@ describe('notification store', () => {
     expect(mocks.subscribe).toHaveBeenCalledTimes(2)
   })
 
+  it('explains when the notifications table is missing, instead of staying silently empty', async () => {
+    mocks.getRecent.mockResolvedValue({ data: null, error: "Could not find the table 'public.notifications' in the schema cache" })
+    const store = useNotificationStore()
+    await store.start('c1', 'u1', SEEN)
+    expect(store.problem).toMatch(/Run the latest Supabase migration/)
+    mocks.getRecent.mockResolvedValue({ data: [OLD], error: null })
+    await store.refresh()
+    expect(store.problem).toBe('')
+  })
+
   it('remembers the sound preference', () => {
     const store = useNotificationStore()
     expect(store.soundOn).toBe(true)
@@ -149,6 +159,13 @@ describe('notification bell', () => {
     expect(mocks.markSeen).toHaveBeenCalled()
     expect(wrapper.find('[aria-label="Unread"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="badge"]').exists()).toBe(false)
+  })
+
+  it('shows the problem in the panel when the list cannot be loaded', async () => {
+    mocks.getRecent.mockResolvedValue({ data: null, error: 'relation "notifications" does not exist' })
+    await mountBell()
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.find('[role="alert"]').text()).toContain('not set up in the database yet')
   })
 
   it('has a friendly empty state', async () => {

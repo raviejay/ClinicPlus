@@ -10,6 +10,15 @@ function readSoundPref(): boolean {
   try { return localStorage.getItem(SOUND_KEY) !== 'off' } catch { return true }
 }
 
+/** What a failed load most likely means, in words a clinic owner can act on */
+export function explainProblem(error: string): string {
+  if (/does not exist|schema cache|not find the table/i.test(error)) {
+    return 'Notifications are not set up in the database yet. Run the latest Supabase migration (notifications).'
+  }
+  if (/permission denied|row-level security/i.test(error)) return 'The database refused to share notifications with this account.'
+  return `Could not load notifications: ${error}`
+}
+
 export interface Toast { id: string; title: string; body: string }
 
 // One listener for the whole signed-in session (pages come and go, the alerts keep arriving)
@@ -17,6 +26,8 @@ export const useNotificationStore = defineStore('notifications', () => {
   const items = ref<AppNotification[]>([])
   const seenAt = ref<string | null>(null)
   const toasts = ref<Toast[]>([])
+  // Why the list could not be loaded (shown in the bell), or '' when all is well
+  const problem = ref('')
   const soundOn = ref(readSoundPref())
   const desktopPermission = ref<NotificationPermission | 'unsupported'>(
     typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
@@ -33,8 +44,14 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   async function refresh() {
     if (!clinicId) return
-    const { data } = await notificationService.getRecent(clinicId)
-    if (data) items.value = mergeNotifications(items.value, data)
+    const { data, error } = await notificationService.getRecent(clinicId)
+    if (data) {
+      items.value = mergeNotifications(items.value, data)
+      problem.value = ''
+    } else if (error) {
+      console.warn('[notifications] could not load:', error)
+      problem.value = explainProblem(error)
+    }
   }
 
   function ding() {
@@ -105,6 +122,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     items.value = []
     toasts.value = []
     seenAt.value = null
+    problem.value = ''
   }
 
   async function markAllSeen() {
@@ -131,7 +149,7 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   return {
-    items, seenAt, toasts, soundOn, desktopPermission, unread, unreadCount,
+    items, seenAt, toasts, problem, soundOn, desktopPermission, unread, unreadCount,
     start, stop, refresh, receive, markAllSeen, dismissToast, setSound, enableDesktop,
   }
 })
